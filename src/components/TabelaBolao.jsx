@@ -78,7 +78,7 @@ export default function TabelaBolao() {
 
       try {
         const response = await fetch(
-          `http://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=${SEASON}`
+          `https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=${SEASON}`
         );
         const data = await response.json();
         setJogos(data.matches || []);

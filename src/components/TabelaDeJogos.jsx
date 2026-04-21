@@ -4,7 +4,7 @@ export default function Classificacao() {
   const [times, setTimes] = useState([]);
 
   useEffect(() => {
-    fetch("http://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/standings?season=2025")
+    fetch("https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/standings?season=2025")
       .then((res) => res.json())
       .then((data) => {
         setTimes(data.standings?.[0]?.table || []);

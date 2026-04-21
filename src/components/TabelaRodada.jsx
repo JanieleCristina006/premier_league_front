@@ -13,7 +13,7 @@ export const TabelaRodada = () => {
     setErro("");
 
     fetch(
-      `http://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=2025`
+      `https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=2025`
     )
       .then((res) => {
         if (!res.ok) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
 import Home from "./pages/Home";
@@ -43,14 +43,18 @@ export default function App() {
   const [user, setUser] = useState(undefined);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    async function carregarUsuario() {
+      const { data } = await supabase.auth.getUser();
+
       const currentUser = data.user ?? null;
       setUser(currentUser);
 
       if (currentUser) {
         await garantirParticipante(currentUser);
       }
-    });
+    }
+
+    carregarUsuario();
 
     const {
       data: { subscription },
@@ -63,7 +67,9 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (user === undefined) {
@@ -78,14 +84,18 @@ export default function App() {
     <Routes>
       {!user ? (
         <>
-          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="*" element={<Login />} />
+
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </>
       ) : (
         <>
           <Route path="/" element={<Home />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </>
       )}

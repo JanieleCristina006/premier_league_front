@@ -5,6 +5,7 @@ import { supabase } from "./lib/supabase";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 async function garantirParticipante(user) {
   const { data: existente, error: erroBusca } = await supabase
@@ -78,11 +79,13 @@ export default function App() {
       {!user ? (
         <>
           <Route path="/" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<Login />} />
         </>
       ) : (
         <>
           <Route path="/" element={<Home />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<NotFound />} />
         </>
       )}

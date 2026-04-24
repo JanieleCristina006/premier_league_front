@@ -2,7 +2,12 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Login() {
+  const siteUrl = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(
+    /\/$/,
+    ""
+  );
   const [modoCadastro, setModoCadastro] = useState(false);
+  const [modoRecuperacao, setModoRecuperacao] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -26,10 +31,27 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (modoCadastro) {
+      if (modoRecuperacao) {
+        const redirectTo = `${siteUrl}/reset-password`;
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo,
+        });
+
+        if (error) throw error;
+
+        setMensagem(
+          "Se o e-mail existir, voce recebera um link para redefinir a senha."
+        );
+        setModoRecuperacao(false);
+      } else if (modoCadastro) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password: senha,
+          options: {
+            data: {
+              name: nome,
+            },
+          },
         });
 
         if (error) throw error;
@@ -38,7 +60,7 @@ export default function Login() {
           await criarParticipante(data.user.id, nome);
         }
 
-        setMensagem("Conta criada com sucesso. Agora é só entrar.");
+        setMensagem("Conta criada com sucesso. Agora e so entrar.");
         setModoCadastro(false);
         setNome("");
         setSenha("");
@@ -57,25 +79,42 @@ export default function Login() {
     }
   };
 
+  const alternarModoPrincipal = () => {
+    if (modoRecuperacao) {
+      setModoRecuperacao(false);
+    } else {
+      setModoCadastro(!modoCadastro);
+    }
+
+    setMensagem("");
+    setSenha("");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-4">
       <div className="w-full max-w-md rounded-[28px] border border-zinc-200 bg-white p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
         <div className="mb-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
-            Bolão Premier League
+            Bolao Premier League
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-zinc-900">
-            {modoCadastro ? "Criar conta" : "Entrar"}
+            {modoRecuperacao
+              ? "Recuperar senha"
+              : modoCadastro
+              ? "Criar conta"
+              : "Entrar"}
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
-            {modoCadastro
+            {modoRecuperacao
+              ? "Informe seu e-mail para receber o link de redefinicao."
+              : modoCadastro
               ? "Crie sua conta para enviar seus palpites."
-              : "Entre para acessar sua linha do bolão."}
+              : "Entre para acessar sua linha do bolao."}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {modoCadastro && (
+          {modoCadastro && !modoRecuperacao && (
             <div>
               <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Nome
@@ -114,8 +153,9 @@ export default function Login() {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="********"
-              required
-              className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none transition focus:border-zinc-400"
+              required={!modoRecuperacao}
+              disabled={modoRecuperacao}
+              className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none transition focus:border-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400"
             />
           </div>
 
@@ -132,23 +172,46 @@ export default function Login() {
           >
             {loading
               ? "Carregando..."
+              : modoRecuperacao
+              ? "Enviar link"
               : modoCadastro
               ? "Criar conta"
               : "Entrar"}
           </button>
         </form>
 
+        {!modoCadastro && !modoRecuperacao && (
+          <div className="mt-4 text-center text-sm text-zinc-500">
+            <button
+              type="button"
+              onClick={() => {
+                setModoRecuperacao(true);
+                setMensagem("");
+                setSenha("");
+              }}
+              className="font-semibold text-zinc-900 hover:underline"
+            >
+              Esqueceu a senha?
+            </button>
+          </div>
+        )}
+
         <div className="mt-6 text-center text-sm text-zinc-500">
-          {modoCadastro ? "Já tem conta?" : "Ainda não tem conta?"}{" "}
+          {modoRecuperacao
+            ? "Lembrou a senha?"
+            : modoCadastro
+            ? "Ja tem conta?"
+            : "Ainda nao tem conta?"}{" "}
           <button
             type="button"
-            onClick={() => {
-              setModoCadastro(!modoCadastro);
-              setMensagem("");
-            }}
+            onClick={alternarModoPrincipal}
             className="font-semibold text-zinc-900 hover:underline"
           >
-            {modoCadastro ? "Entrar" : "Criar conta"}
+            {modoRecuperacao
+              ? "Voltar para entrar"
+              : modoCadastro
+              ? "Entrar"
+              : "Criar conta"}
           </button>
         </div>
       </div>

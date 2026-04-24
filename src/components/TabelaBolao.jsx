@@ -193,16 +193,16 @@ export default function TabelaBolao() {
   const classeCelula = (palpiteTexto, jogo, podeEditar) => {
     const tipo = tipoAcerto(palpiteTexto, jogo);
 
-    if (!podeEditar && !palpiteTexto) {
-      return "bg-zinc-100 text-zinc-400 border-zinc-200";
-    }
-
     if (tipo === "cravada") {
       return "bg-emerald-500 text-white border-emerald-500";
     }
 
     if (tipo === "vencedor") {
       return "bg-sky-500 text-white border-sky-500";
+    }
+
+    if (!podeEditar) {
+      return "bg-zinc-50 text-zinc-700 border-zinc-200";
     }
 
     return "bg-white text-zinc-800 border-zinc-200";
@@ -270,6 +270,26 @@ export default function TabelaBolao() {
     () => !loading && participantes.length > 0,
     [loading, participantes.length]
   );
+
+  const renderCelulaBloqueada = (valor, jogo) => {
+    const tipo = tipoAcerto(valor, jogo);
+    const baseClasses = `relative inline-flex min-h-[42px] min-w-[70px] items-center justify-center rounded-xl border px-3 py-2 text-center text-sm font-semibold ${classeCelula(
+      valor,
+      jogo,
+      false
+    )}`;
+
+    return (
+      <div className="flex items-center justify-center">
+        <div className={baseClasses}>
+          <span className="pr-4">{valor || "-"}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400">
+            <Lock className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   if (loading && jogos.length === 0) {
     return (
@@ -386,7 +406,6 @@ export default function TabelaBolao() {
                         <span className="font-semibold text-zinc-800">
                           {participante.name}
                         </span>
-
                         {!podeEditar && (
                           <span className="inline-flex items-center justify-center rounded-full bg-zinc-100 p-1 text-zinc-500">
                             <Lock className="h-3.5 w-3.5" />
@@ -417,24 +436,14 @@ export default function TabelaBolao() {
                                   e.target.value
                                 )
                               }
-                              className={`w-[64px] rounded-xl border px-2 py-2 text-center text-sm font-semibold outline-none transition ${classeCelula(
+                              className={`w-[70px] rounded-xl border px-2 py-2 text-center text-sm font-semibold outline-none transition ${classeCelula(
                                 valor,
                                 jogo,
-                                podeEditar
+                                true
                               )}`}
                             />
                           ) : (
-                            <div className="flex items-center justify-center">
-                              <div
-                                className={`inline-flex min-h-[40px] min-w-[64px] items-center justify-center rounded-xl border px-2 py-2 text-center text-sm font-semibold ${classeCelula(
-                                  valor,
-                                  jogo,
-                                  podeEditar
-                                )}`}
-                              >
-                                {valor || <Lock className="h-4 w-4 text-zinc-400" />}
-                              </div>
-                            </div>
+                            renderCelulaBloqueada(valor, jogo)
                           )}
                         </td>
                       );

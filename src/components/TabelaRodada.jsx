@@ -1,37 +1,151 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+const SEASON = 2025;
+const TODAS_RODADAS = "todas";
+const RODADAS = Array.from({ length: 38 }, (_, i) => i + 1);
+const JOGOS_VAZIOS = [];
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://futebolinglesbrasil.vps8317.panel.icontainer.cloud";
+const nomeTime = (time) => time?.shortName || time?.name || time?.tla || "Time";
+
+const buscarJogosDaRodada = async (rodada) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/fixtures/round/${rodada}?season=${SEASON}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar jogos");
+  }
+
+  const data = await response.json();
+
+  return (data.matches || []).map((jogo) => ({
+    ...jogo,
+    rodada: jogo.matchday || rodada,
+  }));
+};
+
+const normalizarJogos = (jogos) =>
+  (jogos || []).map((jogo) => ({
+    ...jogo,
+    rodada: jogo.matchday || jogo.rodada,
+  }));
+
+const buscarJogosDaTemporada = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/fixtures?season=${SEASON}`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar jogos da temporada");
+  }
+
+  const data = await response.json();
+
+  return ordenarJogosPorRodada(normalizarJogos(data.matches));
+};
+
+const ordenarJogosPorRodada = (jogos) =>
+  [...jogos].sort((jogoA, jogoB) => {
+    const rodadaA = jogoA.rodada || 0;
+    const rodadaB = jogoB.rodada || 0;
+
+    if (rodadaA !== rodadaB) return rodadaA - rodadaB;
+
+    return new Date(jogoA.utcDate) - new Date(jogoB.utcDate);
+  });
 
 export const TabelaRodada = () => {
-  const [jogos, setJogos] = useState([]);
+  const [resultadoRodada, setResultadoRodada] = useState({
+    rodada: "",
+    jogos: [],
+    erro: "",
+  });
+  const [times, setTimes] = useState([]);
   const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState("");
+  const [timeSelecionado, setTimeSelecionado] = useState("");
 
-  const rodadas = Array.from({ length: 38 }, (_, i) => i + 1);
+  const loading = resultadoRodada.rodada !== rodadaSelecionada;
+  const erro = loading ? "" : resultadoRodada.erro;
+  const jogos = loading ? JOGOS_VAZIOS : resultadoRodada.jogos;
+  const mostrandoTodasRodadas = rodadaSelecionada === TODAS_RODADAS;
 
   useEffect(() => {
-    setLoading(true);
-    setErro("");
+    let ativo = true;
 
-    fetch(
-      `https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=2025`
-    )
+    const carregarJogos = async () => {
+      try {
+        const jogosCarregados =
+          rodadaSelecionada === TODAS_RODADAS
+            ? await buscarJogosDaTemporada()
+            : await buscarJogosDaRodada(rodadaSelecionada);
+
+        if (!ativo) return;
+
+        setResultadoRodada({
+          rodada: rodadaSelecionada,
+          jogos: jogosCarregados,
+          erro: "",
+        });
+      } catch (err) {
+        if (!ativo) return;
+
+        console.error(err);
+        setResultadoRodada({
+          rodada: rodadaSelecionada,
+          jogos: [],
+          erro: "Não foi possível carregar os jogos.",
+        });
+      }
+    };
+
+    carregarJogos();
+
+    return () => {
+      ativo = false;
+    };
+  }, [rodadaSelecionada]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/standings?season=${SEASON}`)
       .then((res) => {
         if (!res.ok) {
-          throw new Error("Erro ao buscar jogos");
+          throw new Error("Erro ao buscar times");
         }
         return res.json();
       })
       .then((data) => {
-        setJogos(data.matches || []);
+        const tabela = data.standings?.[0]?.table || [];
+        setTimes(tabela.map((item) => item.team).filter(Boolean));
       })
       .catch((err) => {
         console.error(err);
-        setErro("Não foi possível carregar os jogos.");
-      })
-      .finally(() => {
-        setLoading(false);
       });
-  }, [rodadaSelecionada]);
+  }, []);
+
+  const timesDisponiveis = useMemo(() => {
+    const mapaTimes = new Map();
+
+    [...times, ...jogos.flatMap((jogo) => [jogo.homeTeam, jogo.awayTeam])]
+      .filter((time) => time?.id)
+      .forEach((time) => {
+        mapaTimes.set(String(time.id), time);
+      });
+
+    return Array.from(mapaTimes.values()).sort((timeA, timeB) =>
+      nomeTime(timeA).localeCompare(nomeTime(timeB), "pt-BR")
+    );
+  }, [jogos, times]);
+
+  const jogosFiltrados = useMemo(() => {
+    if (!timeSelecionado) return jogos;
+
+    return jogos.filter((jogo) => {
+      const homeTeamId = String(jogo.homeTeam?.id || "");
+      const awayTeamId = String(jogo.awayTeam?.id || "");
+
+      return homeTeamId === timeSelecionado || awayTeamId === timeSelecionado;
+    });
+  }, [jogos, timeSelecionado]);
 
   const formatarData = (dataIso) => {
     if (!dataIso) return "-";
@@ -122,30 +236,58 @@ export const TabelaRodada = () => {
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
-            <label htmlFor="rodada" className="text-sm font-medium text-zinc-600">
-              Rodada
-            </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
+            <div className="flex items-center gap-3">
+              <label htmlFor="rodada" className="text-sm font-medium text-zinc-600">
+                Rodada
+              </label>
 
-            <select
-              id="rodada"
-              value={rodadaSelecionada}
-              onChange={(e) => setRodadaSelecionada(e.target.value)}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400"
-            >
-              {rodadas.map((rodada) => (
-                <option key={rodada} value={rodada}>
-                  Rodada {rodada}
-                </option>
-              ))}
-            </select>
+              <select
+                id="rodada"
+                value={rodadaSelecionada}
+                onChange={(e) => setRodadaSelecionada(e.target.value)}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400"
+              >
+                <option value={TODAS_RODADAS}>Todas</option>
+                {RODADAS.map((rodada) => (
+                  <option key={rodada} value={rodada}>
+                    Rodada {rodada}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label htmlFor="time" className="text-sm font-medium text-zinc-600">
+                Time
+              </label>
+
+              <select
+                id="time"
+                value={timeSelecionado}
+                onChange={(e) => setTimeSelecionado(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 sm:w-[190px]"
+              >
+                <option value="">Todos os times</option>
+                {timesDisponiveis.map((time) => (
+                  <option key={time.id} value={time.id}>
+                    {nomeTime(time)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
+          <table className="w-full min-w-[840px]">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50">
+                {mostrandoTodasRodadas && (
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                    Rodada
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
                   Data
                 </th>
@@ -165,11 +307,17 @@ export const TabelaRodada = () => {
             </thead>
 
             <tbody>
-              {jogos.map((jogo) => (
+              {jogosFiltrados.map((jogo) => (
                 <tr
                   key={jogo.id}
                   className="border-b border-zinc-100 transition hover:bg-zinc-50/80"
                 >
+                  {mostrandoTodasRodadas && (
+                    <td className="px-4 py-4 text-sm font-bold text-zinc-700">
+                      Rodada {jogo.rodada || jogo.matchday || "-"}
+                    </td>
+                  )}
+
                   <td className="px-4 py-4 text-sm font-medium text-zinc-700">
                     {formatarData(jogo.utcDate)}
                   </td>
@@ -228,13 +376,13 @@ export const TabelaRodada = () => {
                 </tr>
               ))}
 
-              {jogos.length === 0 && (
+              {jogosFiltrados.length === 0 && (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={mostrandoTodasRodadas ? 6 : 5}
                     className="px-4 py-10 text-center text-sm text-zinc-500"
                   >
-                    Nenhum jogo encontrado para essa rodada.
+                    Nenhum jogo encontrado para esse filtro.
                   </td>
                 </tr>
               )}

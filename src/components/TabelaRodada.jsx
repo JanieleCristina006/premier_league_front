@@ -1,24 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  getFixturesByRound,
+  getRounds,
+  getSeasonFixtures,
+  getStandings,
+} from "../services/api";
 
-const SEASON = 2025;
 const TODAS_RODADAS = "todas";
-const RODADAS = Array.from({ length: 38 }, (_, i) => i + 1);
+const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
 const JOGOS_VAZIOS = [];
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://futebolinglesbrasil.vps8317.panel.icontainer.cloud";
+const JOGOS_POR_PAGINA = 20;
 const nomeTime = (time) => time?.shortName || time?.name || time?.tla || "Time";
 
 const buscarJogosDaRodada = async (rodada) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/fixtures/round/${rodada}?season=${SEASON}`
-  );
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar jogos");
-  }
-
-  const data = await response.json();
+  const data = await getFixturesByRound(rodada);
 
   return (data.matches || []).map((jogo) => ({
     ...jogo,
@@ -33,13 +29,7 @@ const normalizarJogos = (jogos) =>
   }));
 
 const buscarJogosDaTemporada = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/fixtures?season=${SEASON}`);
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar jogos da temporada");
-  }
-
-  const data = await response.json();
+  const data = await getSeasonFixtures();
 
   return ordenarJogosPorRodada(normalizarJogos(data.matches));
 };
@@ -61,13 +51,40 @@ export const TabelaRodada = () => {
     erro: "",
   });
   const [times, setTimes] = useState([]);
+  const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
   const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
   const [timeSelecionado, setTimeSelecionado] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const loading = resultadoRodada.rodada !== rodadaSelecionada;
   const erro = loading ? "" : resultadoRodada.erro;
   const jogos = loading ? JOGOS_VAZIOS : resultadoRodada.jogos;
   const mostrandoTodasRodadas = rodadaSelecionada === TODAS_RODADAS;
+
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarRodadas = async () => {
+      try {
+        const data = await getRounds();
+        if (!ativo) return;
+
+        const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
+        setRodadas(matchdays);
+      } catch (err) {
+        if (!ativo) return;
+
+        console.error(err);
+        setRodadas(RODADAS_FALLBACK);
+      }
+    };
+
+    carregarRodadas();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   useEffect(() => {
     let ativo = true;
@@ -106,20 +123,27 @@ export const TabelaRodada = () => {
   }, [rodadaSelecionada]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/standings?season=${SEASON}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Erro ao buscar times");
-        }
-        return res.json();
-      })
-      .then((data) => {
+    let ativo = true;
+
+    const carregarTimes = async () => {
+      try {
+        const data = await getStandings();
+        if (!ativo) return;
+
         const tabela = data.standings?.[0]?.table || [];
         setTimes(tabela.map((item) => item.team).filter(Boolean));
-      })
-      .catch((err) => {
+      } catch (err) {
+        if (!ativo) return;
+
         console.error(err);
-      });
+      }
+    };
+
+    carregarTimes();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   const timesDisponiveis = useMemo(() => {
@@ -146,6 +170,17 @@ export const TabelaRodada = () => {
       return homeTeamId === timeSelecionado || awayTeamId === timeSelecionado;
     });
   }, [jogos, timeSelecionado]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(jogosFiltrados.length / JOGOS_POR_PAGINA)
+  );
+  const paginaAtualSegura = Math.min(paginaAtual, totalPaginas);
+  const inicioPagina = (paginaAtualSegura - 1) * JOGOS_POR_PAGINA;
+  const fimPagina = inicioPagina + JOGOS_POR_PAGINA;
+  const jogosPaginados = jogosFiltrados.slice(inicioPagina, fimPagina);
+  const primeiroItem = jogosFiltrados.length === 0 ? 0 : inicioPagina + 1;
+  const ultimoItem = Math.min(fimPagina, jogosFiltrados.length);
 
   const formatarData = (dataIso) => {
     if (!dataIso) return "-";
@@ -224,8 +259,8 @@ export const TabelaRodada = () => {
   }
 
   return (
-    <section className="w-full">
-      <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <section className="h-full w-full">
+      <div className="flex h-full min-h-[640px] flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
         <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
@@ -238,18 +273,21 @@ export const TabelaRodada = () => {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
             <div className="flex items-center gap-3">
-              <label htmlFor="rodada" className="text-sm font-medium text-zinc-600">
+              {/* <label htmlFor="rodada" className="text-sm font-medium text-zinc-600">
                 Rodada
-              </label>
+              </label> */}
 
               <select
                 id="rodada"
                 value={rodadaSelecionada}
-                onChange={(e) => setRodadaSelecionada(e.target.value)}
+                onChange={(e) => {
+                  setRodadaSelecionada(e.target.value);
+                  setPaginaAtual(1);
+                }}
                 className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400"
               >
                 <option value={TODAS_RODADAS}>Todas</option>
-                {RODADAS.map((rodada) => (
+                {rodadas.map((rodada) => (
                   <option key={rodada} value={rodada}>
                     Rodada {rodada}
                   </option>
@@ -258,14 +296,17 @@ export const TabelaRodada = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <label htmlFor="time" className="text-sm font-medium text-zinc-600">
+              {/* <label htmlFor="time" className="text-sm font-medium text-zinc-600">
                 Time
-              </label>
+              </label> */}
 
               <select
                 id="time"
                 value={timeSelecionado}
-                onChange={(e) => setTimeSelecionado(e.target.value)}
+                onChange={(e) => {
+                  setTimeSelecionado(e.target.value);
+                  setPaginaAtual(1);
+                }}
                 className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 sm:w-[190px]"
               >
                 <option value="">Todos os times</option>
@@ -279,115 +320,137 @@ export const TabelaRodada = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[840px]">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50">
-                {mostrandoTodasRodadas && (
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                    Rodada
-                  </th>
-                )}
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Data
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Hora
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Partida
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Estádio
-                </th>
-                <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Status
-                </th>
-              </tr>
-            </thead>
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-4 space-y-6">
+  {jogosPaginados.reduce((acc, jogo) => {
+    const data = formatarData(jogo.utcDate);
+    if (!acc[data]) acc[data] = [];
+    acc[data].push(jogo);
+    return acc;
+  }, {}) &&
+    Object.entries(
+      jogosPaginados.reduce((acc, jogo) => {
+        const data = formatarData(jogo.utcDate);
+        if (!acc[data]) acc[data] = [];
+        acc[data].push(jogo);
+        return acc;
+      }, {})
+    ).map(([data, jogosDoDia]) => (
+      <div key={data}>
+        {/* DATA */}
+        <div className="mb-3 text-sm font-semibold text-zinc-500">
+          📅 {data}
+        </div>
 
-            <tbody>
-              {jogosFiltrados.map((jogo) => (
-                <tr
-                  key={jogo.id}
-                  className="border-b border-zinc-100 transition hover:bg-zinc-50/80"
-                >
-                  {mostrandoTodasRodadas && (
-                    <td className="px-4 py-4 text-sm font-bold text-zinc-700">
-                      Rodada {jogo.rodada || jogo.matchday || "-"}
-                    </td>
-                  )}
+        {/* LISTA DE JOGOS */}
+        <div className="space-y-3">
+          {jogosDoDia.map((jogo) => {
+            const home = jogo.score?.fullTime?.home;
+            const away = jogo.score?.fullTime?.away;
 
-                  <td className="px-4 py-4 text-sm font-medium text-zinc-700">
-                    {formatarData(jogo.utcDate)}
-                  </td>
-
-                  <td className="px-4 py-4 text-sm font-medium text-zinc-700">
-                    {formatarHora(jogo.utcDate)}
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex min-w-[180px] items-center justify-end gap-2">
-                        <span className="text-sm font-semibold text-zinc-800">
-                          {jogo.homeTeam?.shortName || jogo.homeTeam?.name}
-                        </span>
-                        <img
-                          src={jogo.homeTeam?.crest}
-                          alt={jogo.homeTeam?.name}
-                          className="h-7 w-7 object-contain"
-                        />
-                      </div>
-
-                      {renderCentroPartida(jogo)}
-
-                      <div className="flex min-w-[180px] items-center gap-2">
-                        <img
-                          src={jogo.awayTeam?.crest}
-                          alt={jogo.awayTeam?.name}
-                          className="h-7 w-7 object-contain"
-                        />
-                        <span className="text-sm font-semibold text-zinc-800">
-                          {jogo.awayTeam?.shortName || jogo.awayTeam?.name}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-4 text-sm text-zinc-600">
-                    {jogo.venue || "-"}
-                  </td>
-
-                  <td className="px-4 py-4 text-center">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white ${
-                        jogo.status === "IN_PLAY"
-                          ? "bg-red-500"
-                          : jogo.status === "PAUSED"
-                          ? "bg-amber-500"
-                          : jogo.status === "FINISHED"
-                          ? "bg-zinc-900"
-                          : "bg-zinc-500"
-                      }`}
-                    >
-                      {traduzirStatus(jogo.status)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-
-              {jogosFiltrados.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={mostrandoTodasRodadas ? 6 : 5}
-                    className="px-4 py-10 text-center text-sm text-zinc-500"
+            return (
+              <div
+                key={jogo.id}
+                className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+              >
+                {/* STATUS + RODADA */}
+                <div className="flex flex-col gap-1 min-w-[90px]">
+                  <span
+                    className={`text-[10px] font-bold px-2 py-[2px] rounded-full w-fit ${
+                      jogo.status === "FINISHED"
+                        ? "bg-green-100 text-green-700"
+                        : jogo.status === "IN_PLAY"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-zinc-100 text-zinc-500"
+                    }`}
                   >
-                    Nenhum jogo encontrado para esse filtro.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {traduzirStatus(jogo.status)}
+                  </span>
+
+                  <span className="text-xs text-zinc-400">
+                    Rodada {jogo.rodada}
+                  </span>
+                </div>
+
+                {/* TIME CASA */}
+                <div className="flex items-center gap-2 w-[120px] justify-end">
+                  <span className="text-sm font-semibold">
+                    {nomeTime(jogo.homeTeam)}
+                  </span>
+                  <img
+                    src={jogo.homeTeam?.crest}
+                    className="h-6 w-6"
+                  />
+                </div>
+
+                {/* PLACAR */}
+                <div className="flex flex-col items-center min-w-[70px]">
+                  <span className="text-lg font-bold text-purple-600">
+                    {jogo.status === "FINISHED"
+                      ? `${home} - ${away}`
+                      : "VS"}
+                  </span>
+
+                  <span className="text-[11px] text-zinc-400">
+                    {formatarHora(jogo.utcDate)}
+                  </span>
+                </div>
+
+                {/* TIME FORA */}
+                <div className="flex items-center gap-2 w-[120px]">
+                  <img
+                    src={jogo.awayTeam?.crest}
+                    className="h-6 w-6"
+                  />
+                  <span className="text-sm font-semibold">
+                    {nomeTime(jogo.awayTeam)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+
+  {jogosFiltrados.length === 0 && (
+    <div className="text-center text-sm text-zinc-500 py-10">
+      Nenhum jogo encontrado.
+    </div>
+  )}
+</div>
+
+        <div className="flex flex-col gap-3 border-t border-zinc-200 px-5 py-4 text-sm text-zinc-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span>
+            {primeiroItem}-{ultimoItem} de {jogosFiltrados.length} jogos
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPaginaAtual(Math.max(1, paginaAtualSegura - 1))}
+              disabled={paginaAtualSegura === 1}
+              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </button>
+
+            <span className="inline-flex h-9 min-w-[74px] items-center justify-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700">
+              {paginaAtualSegura}/{totalPaginas}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPaginaAtual(Math.min(totalPaginas, paginaAtualSegura + 1))
+              }
+              disabled={paginaAtualSegura === totalPaginas}
+              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Lock, Save } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { getFixturesByRound, getRounds, SEASON } from "../services/api";
 
-const SEASON = 2025;
+const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
 
 export default function TabelaBolao() {
   const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
@@ -15,8 +16,23 @@ export default function TabelaBolao() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [erroJogos, setErroJogos] = useState("");
+  const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
 
-  const rodadas = Array.from({ length: 38 }, (_, i) => i + 1);
+  useEffect(() => {
+    const carregarRodadas = async () => {
+      try {
+        const data = await getRounds();
+        const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
+        setRodadas(matchdays);
+      } catch (error) {
+        console.error("Erro ao carregar rodadas:", error);
+        setRodadas(RODADAS_FALLBACK);
+      }
+    };
+
+    carregarRodadas();
+  }, []);
 
   useEffect(() => {
     const carregarSessao = async () => {
@@ -77,13 +93,13 @@ export default function TabelaBolao() {
       setLoading(true);
 
       try {
-        const response = await fetch(
-          `https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/fixtures/round/${rodadaSelecionada}?season=${SEASON}`
-        );
-        const data = await response.json();
+        const data = await getFixturesByRound(rodadaSelecionada);
         setJogos(data.matches || []);
+        setErroJogos("");
       } catch (error) {
         console.error("Erro ao buscar jogos:", error);
+        setJogos([]);
+        setErroJogos("Nao foi possivel carregar os jogos da rodada.");
       } finally {
         setLoading(false);
       }
@@ -267,12 +283,11 @@ export default function TabelaBolao() {
   const minhaLinhaId = meuParticipante?.id ?? null;
 
   const tabelaPronta = useMemo(
-    () => !loading && participantes.length > 0,
-    [loading, participantes.length]
+    () => !loading && !erroJogos && participantes.length > 0,
+    [erroJogos, loading, participantes.length]
   );
 
   const renderCelulaBloqueada = (valor, jogo) => {
-    const tipo = tipoAcerto(valor, jogo);
     const baseClasses = `relative inline-flex min-h-[42px] min-w-[70px] items-center justify-center rounded-xl border px-3 py-2 text-center text-sm font-semibold ${classeCelula(
       valor,
       jogo,
@@ -359,6 +374,12 @@ export default function TabelaBolao() {
       {mensagem && (
         <div className="mb-4 rounded-2xl bg-zinc-100 px-4 py-3 text-sm text-zinc-700">
           {mensagem}
+        </div>
+      )}
+
+      {erroJogos && (
+        <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {erroJogos}
         </div>
       )}
 

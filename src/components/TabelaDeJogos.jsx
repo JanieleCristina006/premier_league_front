@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from "react";
+import { getStandings } from "../services/api";
 
 export default function Classificacao() {
   const [times, setTimes] = useState([]);
+  const [erro, setErro] = useState("");
 
   useEffect(() => {
-    fetch("https://futebolinglesbrasil.vps8317.panel.icontainer.cloud/api/standings?season=2025")
-      .then((res) => res.json())
+    getStandings()
       .then((data) => {
         setTimes(data.standings?.[0]?.table || []);
+        setErro("");
       })
       .catch((err) => {
+        setTimes([]);
+        setErro("Nao foi possivel carregar a classificacao.");
         console.error("Erro ao buscar classificação:", err);
       });
   }, []);
 
   return (
-    <section className="w-full">
-      <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <section className="h-full w-full">
+      <div className="h-full overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
         <div className="border-b border-zinc-200 px-5 py-4 sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
             Premier League
@@ -25,6 +29,12 @@ export default function Classificacao() {
             Classificação
           </h2>
         </div>
+
+        {erro && (
+          <div className="border-b border-red-100 bg-red-50 px-5 py-3 text-sm text-red-700 sm:px-6">
+            {erro}
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px]">

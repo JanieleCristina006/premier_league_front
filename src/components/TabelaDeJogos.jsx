@@ -28,6 +28,21 @@ export default function Classificacao() {
           <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
             Classificação
           </h2>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Top 5
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+              <span className="h-2 w-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+              Meio da tabela
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              Rebaixamento
+            </span>
+          </div>
         </div>
 
         {erro && (

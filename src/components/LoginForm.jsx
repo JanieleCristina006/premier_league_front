@@ -14,17 +14,6 @@ export default function LoginForm({ onSuccess }) {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const criarParticipante = async (userId, nomeParticipante) => {
-    const { error } = await supabase.from("participants").insert({
-      user_id: userId,
-      name: nomeParticipante,
-    });
-
-    if (error) {
-      throw error;
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -43,23 +32,25 @@ export default function LoginForm({ onSuccess }) {
         );
         setModoRecuperacao(false);
       } else if (modoCadastro) {
+        const nomeParticipante = nome.trim();
         const { data, error } = await supabase.auth.signUp({
           email,
           password: senha,
           options: {
+            emailRedirectTo: siteUrl,
             data: {
-              name: nome,
+              name: nomeParticipante,
             },
           },
         });
 
         if (error) throw error;
 
-        if (data.user) {
-          await criarParticipante(data.user.id, nome);
-        }
-
-        toast.success("Conta criada com sucesso. Agora e so entrar.");
+        toast.success(
+          data.session
+            ? "Conta criada com sucesso. Agora e so palpitar."
+            : "Conta criada. Enviamos um email para confirmar seu cadastro."
+        );
         setModoCadastro(false);
         setNome("");
         setSenha("");

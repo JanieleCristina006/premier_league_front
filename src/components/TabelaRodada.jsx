@@ -11,7 +11,57 @@ const TODAS_RODADAS = "todas";
 const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
 const JOGOS_VAZIOS = [];
 const JOGOS_POR_PAGINA = 10;
+const STATUS_ENCERRADOS = new Set([
+  "FINISHED",
+  "AWARDED",
+  "CANCELED",
+  "CANCELLED",
+]);
 const nomeTime = (time) => time?.shortName || time?.name || time?.tla || "Time";
+
+const extrairRodadaAtual = (data) => {
+  const candidatos = [
+    data?.currentMatchday,
+    data?.currentRound,
+    data?.round,
+    data?.season?.currentMatchday,
+    data?.resultSet?.currentMatchday,
+  ];
+
+  return candidatos.map(Number).find((valor) => Number.isInteger(valor)) || null;
+};
+
+const calcularRodadaAtual = (matches = []) => {
+  const jogosPorRodada = new Map();
+
+  matches.forEach((jogo) => {
+    const rodada = Number(jogo.matchday || jogo.rodada);
+
+    if (!Number.isInteger(rodada)) return;
+
+    if (!jogosPorRodada.has(rodada)) {
+      jogosPorRodada.set(rodada, []);
+    }
+
+    jogosPorRodada.get(rodada).push(jogo);
+  });
+
+  const rodadasOrdenadas = Array.from(jogosPorRodada.keys()).sort(
+    (rodadaA, rodadaB) => rodadaA - rodadaB
+  );
+
+  const agora = Date.now();
+  const rodadaAberta = rodadasOrdenadas.find((rodada) =>
+    jogosPorRodada.get(rodada).some((jogo) => {
+      const dataJogo = jogo.utcDate ? new Date(jogo.utcDate).getTime() : null;
+      const jogoFuturo = Number.isFinite(dataJogo) && dataJogo >= agora;
+
+      return jogoFuturo || !STATUS_ENCERRADOS.has(jogo.status);
+    })
+  );
+
+  return rodadaAberta || rodadasOrdenadas.at(-1) || 1;
+};
 
 const buscarJogosDaRodada = async (rodada) => {
   const data = await getFixturesByRound(rodada);
@@ -52,11 +102,11 @@ export const TabelaRodada = () => {
   });
   const [times, setTimes] = useState([]);
   const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
-  const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
+  const [rodadaSelecionada, setRodadaSelecionada] = useState("");
   const [timeSelecionado, setTimeSelecionado] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
-  const loading = resultadoRodada.rodada !== rodadaSelecionada;
+  const loading = !rodadaSelecionada || resultadoRodada.rodada !== rodadaSelecionada;
   const erro = loading ? "" : resultadoRodada.erro;
   const jogos = loading ? JOGOS_VAZIOS : resultadoRodada.jogos;
 
@@ -70,6 +120,12 @@ export const TabelaRodada = () => {
 
         const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
         setRodadas(matchdays);
+
+        const rodadaAtualDaApi = extrairRodadaAtual(data);
+
+        if (rodadaAtualDaApi) {
+          setRodadaSelecionada(String(rodadaAtualDaApi));
+        }
       } catch (err) {
         if (!ativo) return;
 
@@ -88,7 +144,42 @@ export const TabelaRodada = () => {
   useEffect(() => {
     let ativo = true;
 
+    const carregarRodadaAtual = async () => {
+      try {
+        const data = await getSeasonFixtures();
+        if (!ativo) return;
+
+        const rodadaCalculada =
+          extrairRodadaAtual(data) || calcularRodadaAtual(data.matches || []);
+
+        setRodadaSelecionada((rodadaSelecionadaAtual) =>
+          rodadaSelecionadaAtual || String(rodadaCalculada)
+        );
+      } catch (err) {
+        if (!ativo) return;
+
+        console.error(err);
+        setRodadaSelecionada((rodadaSelecionadaAtual) =>
+          rodadaSelecionadaAtual || "1"
+        );
+      }
+    };
+
+    carregarRodadaAtual();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+
     const carregarJogos = async () => {
+      if (!rodadaSelecionada) {
+        return;
+      }
+
       try {
         const jogosCarregados =
           rodadaSelecionada === TODAS_RODADAS
@@ -322,10 +413,10 @@ export const TabelaRodada = () => {
             return (
               <div
                 key={jogo.id}
-                className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-none"
+                className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-none"
               >
                 {/* STATUS + RODADA */}
-                <div className="flex flex-col gap-1 min-w-[90px]">
+                <div className="flex min-w-[82px] flex-col gap-1">
                   <span
                     className={`text-[10px] font-bold px-2 py-[2px] rounded-full w-fit ${
                       jogo.status === "FINISHED"
@@ -343,39 +434,43 @@ export const TabelaRodada = () => {
                   </span>
                 </div>
 
-                {/* TIME CASA */}
-                <div className="flex items-center gap-2 w-[120px] justify-end">
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {nomeTime(jogo.homeTeam)}
-                  </span>
-                  <img
-                    src={jogo.homeTeam?.crest}
-                    className="h-6 w-6"
-                  />
-                </div>
+                <div className="flex flex-1 items-center justify-center gap-3">
+                  {/* TIME CASA */}
+                  <div className="flex w-[112px] items-center justify-end gap-1.5">
+                    <span className="whitespace-nowrap text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {nomeTime(jogo.homeTeam)}
+                    </span>
+                    <img
+                      src={jogo.homeTeam?.crest}
+                      alt={nomeTime(jogo.homeTeam)}
+                      className="h-6 w-6 flex-none object-contain"
+                    />
+                  </div>
 
-                {/* PLACAR */}
-                <div className="flex flex-col items-center min-w-[70px]">
-                  <span className="text-lg font-bold text-purple-600 dark:text-purple-300">
-                    {jogo.status === "FINISHED"
-                      ? `${home} - ${away}`
-                      : "VS"}
-                  </span>
+                  {/* PLACAR */}
+                  <div className="flex min-w-[58px] flex-col items-center">
+                    <span className="text-lg font-bold text-purple-600 dark:text-purple-300">
+                      {jogo.status === "FINISHED"
+                        ? `${home} - ${away}`
+                        : "VS"}
+                    </span>
 
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                    {formatarHora(jogo.utcDate)}
-                  </span>
-                </div>
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                      {formatarHora(jogo.utcDate)}
+                    </span>
+                  </div>
 
-                {/* TIME FORA */}
-                <div className="flex items-center gap-2 w-[120px]">
-                  <img
-                    src={jogo.awayTeam?.crest}
-                    className="h-6 w-6"
-                  />
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {nomeTime(jogo.awayTeam)}
-                  </span>
+                  {/* TIME FORA */}
+                  <div className="flex w-[112px] items-center gap-1.5">
+                    <img
+                      src={jogo.awayTeam?.crest}
+                      alt={nomeTime(jogo.awayTeam)}
+                      className="h-6 w-6 flex-none object-contain"
+                    />
+                    <span className="whitespace-nowrap text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {nomeTime(jogo.awayTeam)}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

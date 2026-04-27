@@ -10,7 +10,7 @@ import {
 const TODAS_RODADAS = "todas";
 const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
 const JOGOS_VAZIOS = [];
-const JOGOS_POR_PAGINA = 20;
+const JOGOS_POR_PAGINA = 10;
 const nomeTime = (time) => time?.shortName || time?.name || time?.tla || "Time";
 
 const buscarJogosDaRodada = async (rodada) => {

@@ -82,23 +82,13 @@ export default function App() {
 
   return (
     <Routes>
-      {!user ? (
-        <>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </>
-      ) : (
-        <>
-          <Route path="/" element={<Home />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </>
-      )}
+      <Route path="/" element={<Home user={user} />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" replace /> : <Login />}
+      />
+      <Route path="*" element={user ? <NotFound /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }

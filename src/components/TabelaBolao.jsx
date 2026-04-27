@@ -338,10 +338,10 @@ export default function TabelaBolao() {
     }
 
     if (!podeEditar) {
-      return "bg-zinc-50 text-zinc-700 border-zinc-200";
+      return "bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700";
     }
 
-    return "bg-white text-zinc-800 border-zinc-200";
+    return "bg-white text-zinc-800 border-zinc-200 dark:bg-zinc-950 dark:text-zinc-100 dark:border-zinc-700";
   };
 
   const placarFinal = (jogo) => {
@@ -458,7 +458,7 @@ export default function TabelaBolao() {
     )}`;
     const destaqueClasses = destaqueSalvo ? " ring-2 ring-emerald-200" : "";
     const IconeBloqueio = destaqueSalvo ? CircleCheck : Lock;
-    const corIcone = destaqueSalvo ? "text-emerald-600" : "text-zinc-400";
+    const corIcone = destaqueSalvo ? "text-emerald-600 dark:text-emerald-300" : "text-zinc-400 dark:text-zinc-500";
 
     return (
       <div className="flex items-center justify-center">
@@ -477,39 +477,39 @@ export default function TabelaBolao() {
 
   if (loading && jogos.length === 0) {
     return (
-      <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-        <p className="text-sm text-zinc-500">Carregando tabela...</p>
+      <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando tabela...</p>
       </section>
     );
   }
 
   return (
-    <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
             Bolão
           </p>
-          <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900">
+          <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
             Palpites da rodada
           </h2>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-zinc-700">
+          <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-zinc-700 dark:bg-emerald-950/40 dark:text-emerald-100">
             <span className="h-4 w-4 rounded-md bg-emerald-500" />
             <span className="h-3 w-3 rounded-full bg-emerald-400" />
             <span>CRAVADA +3</span>
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-zinc-700">
+          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-zinc-700 dark:bg-sky-950/40 dark:text-sky-100">
             <span className="h-4 w-4 rounded-md bg-sky-500" />
             <span className="h-3 w-3 rounded-full bg-sky-400" />
             <span>VENCEDOR +1</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <label htmlFor="rodada" className="text-sm font-medium text-zinc-600">
+            <label htmlFor="rodada" className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
               Rodada
             </label>
 
@@ -517,7 +517,7 @@ export default function TabelaBolao() {
               id="rodada"
               value={rodadaSelecionada}
               onChange={(e) => setRodadaSelecionada(e.target.value)}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none"
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
             >
               {rodadas.map((rodada) => (
                 <option key={rodada} value={rodada}>
@@ -534,7 +534,7 @@ export default function TabelaBolao() {
             <button
               onClick={salvarMeusPalpites}
               disabled={botaoSalvarDesativado}
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
             >
               <Save className="h-4 w-4" />
               {textoBotaoSalvar}
@@ -544,19 +544,19 @@ export default function TabelaBolao() {
       </div>
 
       {erroJogos && (
-        <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {erroJogos}
         </div>
       )}
 
       {meuParticipante && rodadaAnterior && (
-        <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
           Rodadas anteriores estao fechadas para novos palpites.
         </div>
       )}
 
       {meuParticipante && !rodadaAnterior && rodadaJaSalva && (
-        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
           Seus palpites desta rodada ja foram salvos.
         </div>
       )}
@@ -566,28 +566,28 @@ export default function TabelaBolao() {
           <table className="w-full min-w-[1100px] border-separate border-spacing-0">
             <thead>
               <tr>
-                <th className="sticky left-0 z-20 border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-sm font-bold text-zinc-800">
+                <th className="sticky left-0 z-20 border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
                   PARTICIPANTE
                 </th>
 
                 {jogos.map((jogo) => (
                   <th
                     key={jogo.id}
-                    className="min-w-[110px] border-b border-zinc-200 bg-zinc-50 px-3 py-4 text-center"
+                    className="min-w-[110px] border-b border-zinc-200 bg-zinc-50 px-3 py-4 text-center dark:border-zinc-800 dark:bg-zinc-950"
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm font-bold text-zinc-800">
+                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
                         {jogo.homeTeam?.tla}
                       </span>
-                      <span className="text-xs font-medium text-zinc-400">-</span>
-                      <span className="text-sm font-bold text-zinc-800">
+                      <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">-</span>
+                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
                         {jogo.awayTeam?.tla}
                       </span>
                     </div>
                   </th>
                 ))}
 
-                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800">
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
                   PONTOS
                 </th>
               </tr>
@@ -603,17 +603,17 @@ export default function TabelaBolao() {
                 const minhaLinhaEncerrada =
                   isMinhaLinha && !rodadaJaSalva && rodadaAnterior;
                 const badgeBloqueioClasses = minhaLinhaSalva
-                  ? "bg-emerald-100 text-emerald-600"
+                  ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300"
                   : minhaLinhaEncerrada
-                  ? "bg-amber-100 text-amber-600"
-                  : "bg-zinc-100 text-zinc-500";
+                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300"
+                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
                 const IconeLinhaBloqueada = minhaLinhaSalva ? CircleCheck : Lock;
 
                 return (
                   <tr key={participante.id}>
-                    <td className="sticky left-0 z-10 border-b border-zinc-100 bg-white px-4 py-4">
+                    <td className="sticky left-0 z-10 border-b border-zinc-100 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-800">
+                        <span className="font-semibold text-zinc-800 dark:text-zinc-100">
                           {participante.name}
                         </span>
                         {!podeEditar && (
@@ -637,7 +637,7 @@ export default function TabelaBolao() {
                       return (
                         <td
                           key={jogo.id}
-                          className="border-b border-zinc-100 px-2 py-3 text-center"
+                          className="border-b border-zinc-100 px-2 py-3 text-center dark:border-zinc-800"
                         >
                           {podeEditar ? (
                             <input
@@ -666,7 +666,7 @@ export default function TabelaBolao() {
                       );
                     })}
 
-                    <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-zinc-800">
+                    <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
                       {totalParticipante(participante.id)}
                     </td>
                   </tr>
@@ -676,20 +676,20 @@ export default function TabelaBolao() {
 
             <tfoot>
               <tr>
-                <td className="sticky left-0 z-10 border-t-2 border-violet-400 bg-violet-50 px-4 py-4 text-left text-sm font-black uppercase tracking-wide text-violet-900">
+                <td className="sticky left-0 z-10 border-t-2 border-violet-400 bg-violet-50 px-4 py-4 text-left text-sm font-black uppercase tracking-wide text-violet-900 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100">
                   Placar final
                 </td>
 
                 {jogos.map((jogo) => (
                   <td
                     key={jogo.id}
-                    className="border-t-2 border-violet-400 bg-zinc-50 px-3 py-4 text-center text-lg font-bold text-zinc-800"
+                    className="border-t-2 border-violet-400 bg-zinc-50 px-3 py-4 text-center text-lg font-bold text-zinc-800 dark:border-violet-500 dark:bg-zinc-950 dark:text-zinc-100"
                   >
                     {placarFinal(jogo)}
                   </td>
                 ))}
 
-                <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4" />
+                <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
               </tr>
             </tfoot>
           </table>
@@ -697,7 +697,7 @@ export default function TabelaBolao() {
       )}
 
       {!user && (
-        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
           Você precisa estar logado para editar seus palpites.
         </div>
       )}

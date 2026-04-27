@@ -8,6 +8,22 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
+const THEME_STORAGE_KEY = "bolao-modo-noturno";
+
+const obterTemaInicial = () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const temaSalvo = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (temaSalvo !== null) {
+    return temaSalvo === "true";
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+};
+
 async function garantirParticipante(user) {
   const { data: existente, error: erroBusca } = await supabase
     .from("participants")
@@ -42,6 +58,7 @@ async function garantirParticipante(user) {
 
 export default function App() {
   const [user, setUser] = useState(undefined);
+  const [modoNoturno, setModoNoturno] = useState(obterTemaInicial);
 
   useEffect(() => {
     async function carregarUsuario() {
@@ -73,9 +90,15 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", modoNoturno);
+    document.documentElement.style.colorScheme = modoNoturno ? "dark" : "light";
+    window.localStorage.setItem(THEME_STORAGE_KEY, String(modoNoturno));
+  }, [modoNoturno]);
+
   if (user === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-700 transition-colors dark:bg-zinc-950 dark:text-zinc-200">
         Carregando...
       </div>
     );
@@ -84,7 +107,16 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Home user={user} />} />
+        <Route
+          path="/"
+          element={
+            <Home
+              user={user}
+              modoNoturno={modoNoturno}
+              onToggleTema={() => setModoNoturno((valorAtual) => !valorAtual)}
+            />
+          }
+        />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/login"

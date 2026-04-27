@@ -36,7 +36,7 @@ export default function LoginModal({ onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Fechar login"
-          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200"
+          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
         >
           <X className="h-5 w-5" />
         </button>

@@ -1,39 +1,53 @@
 import { useState } from "react";
-import { LogIn } from "lucide-react";
+import { LogIn, Moon, Sun } from "lucide-react";
 import HeroBannerCanal from "../components/Header";
 import LoginModal from "../components/LoginModal";
 import TabelaBolao from "../components/TabelaBolao";
 import TabelaJogos from "../components/TabelaDeJogos";
 import { TabelaRodada } from "../components/TabelaRodada";
 
-export default function Home({ user }) {
+export default function Home({ user, modoNoturno, onToggleTema }) {
   const [loginAberto, setLoginAberto] = useState(false);
+  const IconeTema = modoNoturno ? Sun : Moon;
 
   return (
-    <>
+    <div className="min-h-screen bg-zinc-100 text-zinc-900 transition-colors dark:bg-zinc-950 dark:text-zinc-100">
       <HeroBannerCanal />
 
-      <div className="border-b border-zinc-200 bg-white">
+      <div className="border-b border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
               Bolao Premier League
             </p>
-            <p className="mt-1 text-sm font-medium text-zinc-600">
+            <p className="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-300">
               Acompanhe jogos, classificacao e palpites em um so lugar.
             </p>
           </div>
 
-          {!user && (
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setLoginAberto(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+              onClick={onToggleTema}
+              aria-pressed={modoNoturno}
+              title={modoNoturno ? "Ativar modo claro" : "Ativar modo noturno"}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
             >
-              <LogIn className="h-4 w-4" />
-              Fazer login
+              <IconeTema className="h-4 w-4" />
+              {modoNoturno ? "Modo claro" : "Modo noturno"}
             </button>
-          )}
+
+            {!user && (
+              <button
+                type="button"
+                onClick={() => setLoginAberto(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+              >
+                <LogIn className="h-4 w-4" />
+                Fazer login
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -47,6 +61,6 @@ export default function Home({ user }) {
       <TabelaBolao key={user?.id || "guest"} />
 
       {loginAberto && <LoginModal onClose={() => setLoginAberto(false)} />}
-    </>
+    </div>
   );
 }

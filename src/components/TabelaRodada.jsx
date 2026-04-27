@@ -59,7 +59,6 @@ export const TabelaRodada = () => {
   const loading = resultadoRodada.rodada !== rodadaSelecionada;
   const erro = loading ? "" : resultadoRodada.erro;
   const jogos = loading ? JOGOS_VAZIOS : resultadoRodada.jogos;
-  const mostrandoTodasRodadas = rodadaSelecionada === TODAS_RODADAS;
 
   useEffect(() => {
     let ativo = true;
@@ -215,58 +214,31 @@ export const TabelaRodada = () => {
     return mapa[status] || status;
   };
 
-  const renderCentroPartida = (jogo) => {
-    const home = jogo.score?.fullTime?.home;
-    const away = jogo.score?.fullTime?.away;
-
-    if (jogo.status === "FINISHED") {
-      return (
-        <span className="inline-flex min-w-[64px] items-center justify-center rounded-full bg-zinc-950 px-3 py-1 text-xs font-bold text-white">
-          {home} x {away}
-        </span>
-      );
-    }
-
-    if (jogo.status === "IN_PLAY" || jogo.status === "PAUSED") {
-      return (
-        <span className="inline-flex min-w-[64px] items-center justify-center rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
-          {home ?? 0} x {away ?? 0}
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex min-w-[64px] items-center justify-center rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-500">
-        VS
-      </span>
-    );
-  };
-
   if (loading) {
     return (
-      <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-        <p className="text-sm text-zinc-500">Carregando jogos...</p>
+      <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando jogos...</p>
       </section>
     );
   }
 
   if (erro) {
     return (
-      <section className="w-full rounded-[28px] border border-red-200 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-        <p className="text-sm text-red-500">{erro}</p>
+      <section className="w-full rounded-[28px] border border-red-200 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-red-900/60 dark:bg-zinc-900 dark:shadow-none">
+        <p className="text-sm text-red-500 dark:text-red-300">{erro}</p>
       </section>
     );
   }
 
   return (
     <section className="h-full w-full">
-      <div className="flex h-full min-h-[640px] flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-        <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+      <div className="flex h-full min-h-[640px] flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+        <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between dark:border-zinc-800">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
               Premier League
             </p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900">
+            <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
               Jogos por rodada
             </h2>
           </div>
@@ -284,7 +256,7 @@ export const TabelaRodada = () => {
                   setRodadaSelecionada(e.target.value);
                   setPaginaAtual(1);
                 }}
-                className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400"
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500"
               >
                 <option value={TODAS_RODADAS}>Todas</option>
                 {rodadas.map((rodada) => (
@@ -307,7 +279,7 @@ export const TabelaRodada = () => {
                   setTimeSelecionado(e.target.value);
                   setPaginaAtual(1);
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 sm:w-[190px]"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 sm:w-[190px] dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500"
               >
                 <option value="">Todos os times</option>
                 {timesDisponiveis.map((time) => (
@@ -337,7 +309,7 @@ export const TabelaRodada = () => {
     ).map(([data, jogosDoDia]) => (
       <div key={data}>
         {/* DATA */}
-        <div className="mb-3 text-sm font-semibold text-zinc-500">
+        <div className="mb-3 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
           📅 {data}
         </div>
 
@@ -350,30 +322,30 @@ export const TabelaRodada = () => {
             return (
               <div
                 key={jogo.id}
-                className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-none"
               >
                 {/* STATUS + RODADA */}
                 <div className="flex flex-col gap-1 min-w-[90px]">
                   <span
                     className={`text-[10px] font-bold px-2 py-[2px] rounded-full w-fit ${
                       jogo.status === "FINISHED"
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300"
                         : jogo.status === "IN_PLAY"
-                        ? "bg-red-100 text-red-600"
-                        : "bg-zinc-100 text-zinc-500"
+                        ? "bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-300"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300"
                     }`}
                   >
                     {traduzirStatus(jogo.status)}
                   </span>
 
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
                     Rodada {jogo.rodada}
                   </span>
                 </div>
 
                 {/* TIME CASA */}
                 <div className="flex items-center gap-2 w-[120px] justify-end">
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     {nomeTime(jogo.homeTeam)}
                   </span>
                   <img
@@ -384,13 +356,13 @@ export const TabelaRodada = () => {
 
                 {/* PLACAR */}
                 <div className="flex flex-col items-center min-w-[70px]">
-                  <span className="text-lg font-bold text-purple-600">
+                  <span className="text-lg font-bold text-purple-600 dark:text-purple-300">
                     {jogo.status === "FINISHED"
                       ? `${home} - ${away}`
                       : "VS"}
                   </span>
 
-                  <span className="text-[11px] text-zinc-400">
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
                     {formatarHora(jogo.utcDate)}
                   </span>
                 </div>
@@ -401,7 +373,7 @@ export const TabelaRodada = () => {
                     src={jogo.awayTeam?.crest}
                     className="h-6 w-6"
                   />
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     {nomeTime(jogo.awayTeam)}
                   </span>
                 </div>
@@ -413,13 +385,13 @@ export const TabelaRodada = () => {
     ))}
 
   {jogosFiltrados.length === 0 && (
-    <div className="text-center text-sm text-zinc-500 py-10">
+    <div className="text-center text-sm text-zinc-500 py-10 dark:text-zinc-400">
       Nenhum jogo encontrado.
     </div>
   )}
 </div>
 
-        <div className="flex flex-col gap-3 border-t border-zinc-200 px-5 py-4 text-sm text-zinc-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-t border-zinc-200 px-5 py-4 text-sm text-zinc-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-zinc-800 dark:text-zinc-300">
           <span>
             {primeiroItem}-{ultimoItem} de {jogosFiltrados.length} jogos
           </span>
@@ -429,13 +401,13 @@ export const TabelaRodada = () => {
               type="button"
               onClick={() => setPaginaAtual(Math.max(1, paginaAtualSegura - 1))}
               disabled={paginaAtualSegura === 1}
-              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               <ChevronLeft className="h-4 w-4" />
               Anterior
             </button>
 
-            <span className="inline-flex h-9 min-w-[74px] items-center justify-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700">
+            <span className="inline-flex h-9 min-w-[74px] items-center justify-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
               {paginaAtualSegura}/{totalPaginas}
             </span>
 
@@ -445,7 +417,7 @@ export const TabelaRodada = () => {
                 setPaginaAtual(Math.min(totalPaginas, paginaAtualSegura + 1))
               }
               disabled={paginaAtualSegura === totalPaginas}
-              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               Próxima
               <ChevronRight className="h-4 w-4" />

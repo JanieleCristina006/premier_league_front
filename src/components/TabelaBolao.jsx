@@ -1,9 +1,65 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Lock, Save } from "lucide-react";
+import { CircleCheck, Lock, Save } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { supabase } from "../lib/supabase";
-import { getFixturesByRound, getRounds, SEASON } from "../services/api";
+import {
+  getFixturesByRound,
+  getRounds,
+  getSeasonFixtures,
+  SEASON,
+} from "../services/api";
 
 const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
+const STATUS_ENCERRADOS = new Set([
+  "FINISHED",
+  "AWARDED",
+  "CANCELED",
+  "CANCELLED",
+]);
+
+const extrairRodadaAtual = (data) => {
+  const candidatos = [
+    data?.currentMatchday,
+    data?.currentRound,
+    data?.round,
+    data?.season?.currentMatchday,
+    data?.resultSet?.currentMatchday,
+  ];
+
+  return candidatos.map(Number).find((valor) => Number.isInteger(valor)) || null;
+};
+
+const calcularRodadaAtual = (matches = []) => {
+  const jogosPorRodada = new Map();
+
+  matches.forEach((jogo) => {
+    const rodada = Number(jogo.matchday || jogo.rodada);
+
+    if (!Number.isInteger(rodada)) return;
+
+    if (!jogosPorRodada.has(rodada)) {
+      jogosPorRodada.set(rodada, []);
+    }
+
+    jogosPorRodada.get(rodada).push(jogo);
+  });
+
+  const rodadasOrdenadas = Array.from(jogosPorRodada.keys()).sort(
+    (rodadaA, rodadaB) => rodadaA - rodadaB
+  );
+
+  const agora = Date.now();
+  const rodadaAberta = rodadasOrdenadas.find((rodada) =>
+    jogosPorRodada.get(rodada).some((jogo) => {
+      const dataJogo = jogo.utcDate ? new Date(jogo.utcDate).getTime() : null;
+      const jogoFuturo = Number.isFinite(dataJogo) && dataJogo >= agora;
+
+      return jogoFuturo || !STATUS_ENCERRADOS.has(jogo.status);
+    })
+  );
+
+  return rodadaAberta || rodadasOrdenadas.at(-1) || 1;
+};
 
 export default function TabelaBolao() {
   const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
@@ -15,9 +71,10 @@ export default function TabelaBolao() {
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [mensagem, setMensagem] = useState("");
   const [erroJogos, setErroJogos] = useState("");
   const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
+  const [rodadaAtual, setRodadaAtual] = useState(null);
+  const [rodadasSalvas, setRodadasSalvas] = useState(() => new Set());
 
   useEffect(() => {
     const carregarRodadas = async () => {
@@ -25,6 +82,19 @@ export default function TabelaBolao() {
         const data = await getRounds();
         const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
         setRodadas(matchdays);
+
+        const rodadaAtualDaApi = extrairRodadaAtual(data);
+
+        if (rodadaAtualDaApi) {
+          setRodadaAtual(rodadaAtualDaApi);
+          setRodadaSelecionada((rodadaSelecionadaAtual) => {
+            const selecionada = Number(rodadaSelecionadaAtual);
+
+            return selecionada >= rodadaAtualDaApi
+              ? rodadaSelecionadaAtual
+              : String(rodadaAtualDaApi);
+          });
+        }
       } catch (error) {
         console.error("Erro ao carregar rodadas:", error);
         setRodadas(RODADAS_FALLBACK);
@@ -32,6 +102,37 @@ export default function TabelaBolao() {
     };
 
     carregarRodadas();
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarRodadaAtual = async () => {
+      try {
+        const data = await getSeasonFixtures();
+        if (!ativo) return;
+
+        const rodadaCalculada =
+          extrairRodadaAtual(data) || calcularRodadaAtual(data.matches || []);
+
+        setRodadaAtual(rodadaCalculada);
+        setRodadaSelecionada((rodadaSelecionadaAtual) => {
+          const selecionada = Number(rodadaSelecionadaAtual);
+
+          return selecionada >= rodadaCalculada
+            ? rodadaSelecionadaAtual
+            : String(rodadaCalculada);
+        });
+      } catch (error) {
+        console.error("Erro ao calcular rodada atual:", error);
+      }
+    };
+
+    carregarRodadaAtual();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -133,10 +234,29 @@ export default function TabelaBolao() {
       });
 
       setPalpites(mapa);
+
+      if (meuParticipante) {
+        const rodadaNumero = Number(rodadaSelecionada);
+        const temPalpiteMeu = (data || []).some(
+          (item) => String(item.participant_id) === String(meuParticipante.id)
+        );
+
+        setRodadasSalvas((prev) => {
+          const next = new Set(prev);
+
+          if (temPalpiteMeu) {
+            next.add(rodadaNumero);
+          } else {
+            next.delete(rodadaNumero);
+          }
+
+          return next;
+        });
+      }
     };
 
     carregarPalpites();
-  }, [rodadaSelecionada]);
+  }, [meuParticipante, rodadaSelecionada]);
 
   const formatarPalpite = (valor) => {
     const numeros = valor.replace(/\D/g, "").slice(0, 2);
@@ -232,11 +352,46 @@ export default function TabelaBolao() {
     return `${casa}-${fora}`;
   };
 
+  const rodadaSelecionadaNumero = Number(rodadaSelecionada);
+  const minhaLinhaId = meuParticipante?.id ?? null;
+  const rodadaAnterior =
+    Number.isInteger(rodadaAtual) && rodadaSelecionadaNumero < rodadaAtual;
+  const rodadaJaSalva = rodadasSalvas.has(rodadaSelecionadaNumero);
+  const podeEditarMinhaLinha =
+    Boolean(meuParticipante) &&
+    !loading &&
+    !erroJogos &&
+    !rodadaAnterior &&
+    !rodadaJaSalva;
+  const botaoSalvarDesativado =
+    salvando ||
+    loading ||
+    Boolean(erroJogos) ||
+    jogos.length === 0 ||
+    rodadaAnterior ||
+    rodadaJaSalva;
+  const textoBotaoSalvar = salvando
+    ? "Salvando..."
+    : rodadaJaSalva
+    ? "Palpites salvos"
+    : rodadaAnterior
+    ? "Rodada encerrada"
+    : "Salvar palpites";
+
   const salvarMeusPalpites = async () => {
     if (!meuParticipante) return;
 
+    if (rodadaAnterior) {
+      toast.error("Rodadas anteriores estao fechadas para novos palpites.");
+      return;
+    }
+
+    if (rodadaJaSalva) {
+      toast("Seus palpites desta rodada ja foram salvos.");
+      return;
+    }
+
     setSalvando(true);
-    setMensagem("");
 
     try {
       const payload = jogos
@@ -257,8 +412,13 @@ export default function TabelaBolao() {
         })
         .filter(Boolean);
 
-      if (payload.length === 0) {
-        setMensagem("Preencha pelo menos um palpite válido.");
+      if (jogos.length === 0) {
+        toast.error("Nao ha jogos nesta rodada.");
+        return;
+      }
+
+      if (payload.length !== jogos.length) {
+        toast.error("Preencha todos os palpites da rodada antes de salvar.");
         return;
       }
 
@@ -270,36 +430,45 @@ export default function TabelaBolao() {
 
       if (error) {
         console.error("Erro ao salvar palpites:", error);
-        setMensagem("Erro ao salvar palpites.");
+        toast.error("Erro ao salvar palpites.");
         return;
       }
 
-      setMensagem("Palpites salvos com sucesso.");
+      setRodadasSalvas((prev) => {
+        const next = new Set(prev);
+        next.add(rodadaSelecionadaNumero);
+        return next;
+      });
+      toast.success("Palpites salvos com sucesso.");
     } finally {
       setSalvando(false);
     }
   };
-
-  const minhaLinhaId = meuParticipante?.id ?? null;
 
   const tabelaPronta = useMemo(
     () => !loading && !erroJogos && participantes.length > 0,
     [erroJogos, loading, participantes.length]
   );
 
-  const renderCelulaBloqueada = (valor, jogo) => {
+  const renderCelulaBloqueada = (valor, jogo, destaqueSalvo = false) => {
     const baseClasses = `relative inline-flex min-h-[42px] min-w-[70px] items-center justify-center rounded-xl border px-3 py-2 text-center text-sm font-semibold ${classeCelula(
       valor,
       jogo,
       false
     )}`;
+    const destaqueClasses = destaqueSalvo ? " ring-2 ring-emerald-200" : "";
+    const IconeBloqueio = destaqueSalvo ? CircleCheck : Lock;
+    const corIcone = destaqueSalvo ? "text-emerald-600" : "text-zinc-400";
 
     return (
       <div className="flex items-center justify-center">
-        <div className={baseClasses}>
+        <div className={`${baseClasses}${destaqueClasses}`}>
           <span className="pr-4">{valor || "-"}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400">
-            <Lock className="h-3.5 w-3.5" />
+          <span
+            className={`absolute right-2 top-1/2 -translate-y-1/2 ${corIcone}`}
+            title={destaqueSalvo ? "Palpite salvo" : "Palpite bloqueado"}
+          >
+            <IconeBloqueio className="h-3.5 w-3.5" />
           </span>
         </div>
       </div>
@@ -353,6 +522,9 @@ export default function TabelaBolao() {
               {rodadas.map((rodada) => (
                 <option key={rodada} value={rodada}>
                   Rodada {rodada}
+                  {Number.isInteger(rodadaAtual) && Number(rodada) < rodadaAtual
+                    ? " (encerrada)"
+                    : ""}
                 </option>
               ))}
             </select>
@@ -361,25 +533,31 @@ export default function TabelaBolao() {
           {meuParticipante && (
             <button
               onClick={salvarMeusPalpites}
-              disabled={salvando}
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              disabled={botaoSalvarDesativado}
+              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              {salvando ? "Salvando..." : "Salvar palpites"}
+              {textoBotaoSalvar}
             </button>
           )}
         </div>
       </div>
 
-      {mensagem && (
-        <div className="mb-4 rounded-2xl bg-zinc-100 px-4 py-3 text-sm text-zinc-700">
-          {mensagem}
-        </div>
-      )}
-
       {erroJogos && (
         <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {erroJogos}
+        </div>
+      )}
+
+      {meuParticipante && rodadaAnterior && (
+        <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Rodadas anteriores estao fechadas para novos palpites.
+        </div>
+      )}
+
+      {meuParticipante && !rodadaAnterior && rodadaJaSalva && (
+        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          Seus palpites desta rodada ja foram salvos.
         </div>
       )}
 
@@ -417,8 +595,19 @@ export default function TabelaBolao() {
 
             <tbody>
               {participantes.map((participante) => {
-                const podeEditar =
+                const isMinhaLinha =
                   minhaLinhaId && String(minhaLinhaId) === String(participante.id);
+                const podeEditar =
+                  podeEditarMinhaLinha && isMinhaLinha;
+                const minhaLinhaSalva = isMinhaLinha && rodadaJaSalva;
+                const minhaLinhaEncerrada =
+                  isMinhaLinha && !rodadaJaSalva && rodadaAnterior;
+                const badgeBloqueioClasses = minhaLinhaSalva
+                  ? "bg-emerald-100 text-emerald-600"
+                  : minhaLinhaEncerrada
+                  ? "bg-amber-100 text-amber-600"
+                  : "bg-zinc-100 text-zinc-500";
+                const IconeLinhaBloqueada = minhaLinhaSalva ? CircleCheck : Lock;
 
                 return (
                   <tr key={participante.id}>
@@ -428,8 +617,15 @@ export default function TabelaBolao() {
                           {participante.name}
                         </span>
                         {!podeEditar && (
-                          <span className="inline-flex items-center justify-center rounded-full bg-zinc-100 p-1 text-zinc-500">
-                            <Lock className="h-3.5 w-3.5" />
+                          <span
+                            className={`inline-flex items-center justify-center rounded-full p-1 ${badgeBloqueioClasses}`}
+                            title={
+                              minhaLinhaSalva
+                                ? "Seus palpites foram salvos"
+                                : "Palpites bloqueados"
+                            }
+                          >
+                            <IconeLinhaBloqueada className="h-3.5 w-3.5" />
                           </span>
                         )}
                       </div>
@@ -464,7 +660,7 @@ export default function TabelaBolao() {
                               )}`}
                             />
                           ) : (
-                            renderCelulaBloqueada(valor, jogo)
+                            renderCelulaBloqueada(valor, jogo, minhaLinhaSalva)
                           )}
                         </td>
                       );

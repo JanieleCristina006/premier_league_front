@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Toaster } from "react-hot-toast";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
@@ -81,14 +82,44 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Home user={user} />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/" replace /> : <Login />}
+    <>
+      <Routes>
+        <Route path="/" element={<Home user={user} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/" replace /> : <Login />}
+        />
+        <Route
+          path="*"
+          element={user ? <NotFound /> : <Navigate to="/" replace />}
+        />
+      </Routes>
+
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            borderRadius: "16px",
+            background: "#18181b",
+            color: "#fff",
+            fontSize: "14px",
+          },
+          success: {
+            iconTheme: {
+              primary: "#10b981",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
+        }}
       />
-      <Route path="*" element={user ? <NotFound /> : <Navigate to="/" replace />} />
-    </Routes>
+    </>
   );
 }

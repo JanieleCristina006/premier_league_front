@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -7,19 +8,17 @@ export default function ResetPassword() {
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mensagem, setMensagem] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMensagem("");
 
     if (senha.length < 6) {
-      setMensagem("A senha precisa ter pelo menos 6 caracteres.");
+      toast.error("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
     if (senha !== confirmacao) {
-      setMensagem("As senhas nao coincidem.");
+      toast.error("As senhas nao coincidem.");
       return;
     }
 
@@ -30,7 +29,7 @@ export default function ResetPassword() {
 
       if (error) throw error;
 
-      setMensagem("Senha atualizada com sucesso. Voce ja pode entrar.");
+      toast.success("Senha atualizada com sucesso. Voce ja pode entrar.");
       setSenha("");
       setConfirmacao("");
 
@@ -39,7 +38,7 @@ export default function ResetPassword() {
         navigate("/");
       }, 1200);
     } catch (error) {
-      setMensagem(error.message || "Nao foi possivel redefinir a senha.");
+      toast.error(error.message || "Nao foi possivel redefinir a senha.");
     } finally {
       setLoading(false);
     }
@@ -88,12 +87,6 @@ export default function ResetPassword() {
               className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none transition focus:border-zinc-400"
             />
           </div>
-
-          {mensagem && (
-            <div className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm text-zinc-700">
-              {mensagem}
-            </div>
-          )}
 
           <button
             type="submit"

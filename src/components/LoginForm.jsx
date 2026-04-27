@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { supabase } from "../lib/supabase";
 
 export default function LoginForm({ onSuccess }) {
@@ -12,7 +13,6 @@ export default function LoginForm({ onSuccess }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mensagem, setMensagem] = useState("");
 
   const criarParticipante = async (userId, nomeParticipante) => {
     const { error } = await supabase.from("participants").insert({
@@ -27,7 +27,6 @@ export default function LoginForm({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMensagem("");
     setLoading(true);
 
     try {
@@ -39,7 +38,7 @@ export default function LoginForm({ onSuccess }) {
 
         if (error) throw error;
 
-        setMensagem(
+        toast.success(
           "Se o e-mail existir, voce recebera um link para redefinir a senha."
         );
         setModoRecuperacao(false);
@@ -60,7 +59,7 @@ export default function LoginForm({ onSuccess }) {
           await criarParticipante(data.user.id, nome);
         }
 
-        setMensagem("Conta criada com sucesso. Agora e so entrar.");
+        toast.success("Conta criada com sucesso. Agora e so entrar.");
         setModoCadastro(false);
         setNome("");
         setSenha("");
@@ -72,10 +71,11 @@ export default function LoginForm({ onSuccess }) {
 
         if (error) throw error;
 
+        toast.success("Login realizado com sucesso.");
         onSuccess?.();
       }
     } catch (error) {
-      setMensagem(error.message || "Ocorreu um erro.");
+      toast.error(error.message || "Ocorreu um erro.");
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,6 @@ export default function LoginForm({ onSuccess }) {
       setModoCadastro(!modoCadastro);
     }
 
-    setMensagem("");
     setSenha("");
   };
 
@@ -160,12 +159,6 @@ export default function LoginForm({ onSuccess }) {
           />
         </div>
 
-        {mensagem && (
-          <div className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm text-zinc-700">
-            {mensagem}
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={loading}
@@ -187,7 +180,6 @@ export default function LoginForm({ onSuccess }) {
             type="button"
             onClick={() => {
               setModoRecuperacao(true);
-              setMensagem("");
               setSenha("");
             }}
             className="font-semibold text-zinc-900 hover:underline"

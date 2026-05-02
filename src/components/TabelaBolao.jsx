@@ -798,300 +798,312 @@ export default function TabelaBolao() {
     );
   }
 
-  return (
-    <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-      <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
-            Bolão
-          </p>
-          <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
-            Palpites da rodada
-          </h2>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-zinc-700 dark:bg-emerald-950/40 dark:text-emerald-100">
-            <span className="h-4 w-4 rounded-md bg-emerald-500" />
-            <span className="h-3 w-3 rounded-full bg-emerald-400" />
-            <span>CRAVADA +3</span>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-zinc-700 dark:bg-sky-950/40 dark:text-sky-100">
-            <span className="h-4 w-4 rounded-md bg-sky-500" />
-            <span className="h-3 w-3 rounded-full bg-sky-400" />
-            <span>VENCEDOR +1</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <label htmlFor="rodada" className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-              Rodada
-            </label>
-
-            <select
-              id="rodada"
-              value={rodadaSelecionada}
-              onChange={(e) => setRodadaSelecionada(e.target.value)}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            >
-              {rodadas.map((rodada) => (
-                <option key={rodada} value={rodada}>
-                  Rodada {rodada}
-                  {Number.isInteger(rodadaAtual) && Number(rodada) < rodadaAtual
-                    ? " (encerrada)"
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {meuParticipante && (
-            <button
-              onClick={salvarMeusPalpites}
-              disabled={botaoSalvarDesativado}
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-            >
-              <Save className="h-4 w-4" />
-              {textoBotaoSalvar}
-            </button>
-          )}
-        </div>
+ return (
+  <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+    <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
+          Bolão
+        </p>
+        <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
+          Palpites da rodada
+        </h2>
       </div>
 
-      {erroJogos && (
-        <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {erroJogos}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-zinc-700 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <span className="h-4 w-4 rounded-md bg-emerald-500" />
+          <span className="h-3 w-3 rounded-full bg-emerald-400" />
+          <span>CRAVADA +3</span>
         </div>
-      )}
 
-      {meuParticipante && rodadaAnterior && (
-        <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-          Rodadas anteriores estao fechadas para novos palpites.
+        <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-zinc-700 dark:bg-sky-950/40 dark:text-sky-100">
+          <span className="h-4 w-4 rounded-md bg-sky-500" />
+          <span className="h-3 w-3 rounded-full bg-sky-400" />
+          <span>VENCEDOR +1</span>
         </div>
-      )}
 
-      {meuParticipante && !rodadaAnterior && rodadaJaSalva && (
-        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
-          Seus palpites desta rodada ja foram salvos.
+        <div className="flex items-center gap-3">
+          <label htmlFor="rodada" className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+            Rodada
+          </label>
+
+          <select
+            id="rodada"
+            value={rodadaSelecionada}
+            onChange={(e) => setRodadaSelecionada(e.target.value)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+          >
+            {rodadas.map((rodada) => (
+              <option key={rodada} value={rodada}>
+                Rodada {rodada}
+                {Number.isInteger(rodadaAtual) && Number(rodada) < rodadaAtual
+                  ? " (encerrada)"
+                  : ""}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {participantes.length > 0 && (
-        <div className="mb-5">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
-                Ranking
-              </p>
-              <h3 className="text-lg font-black text-zinc-900 dark:text-zinc-50">
-                Total pontos
-              </h3>
-            </div>
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-              Rodadas {RODADA_INICIAL_BOLAO}-{RODADA_FINAL_BOLAO}
-            </span>
-          </div>
+        {meuParticipante && (
+          <button
+            onClick={salvarMeusPalpites}
+            disabled={botaoSalvarDesativado}
+            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+          >
+            <Save className="h-4 w-4" />
+            {textoBotaoSalvar}
+          </button>
+        )}
+      </div>
+    </div>
 
-          {erroTotais && (
-            <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-              {erroTotais}
-            </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] border-separate border-spacing-0">
-              <thead>
-                <tr>
-                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                    Pos
-                  </th>
-                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                    Participante
-                  </th>
-                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                    Pontos
-                  </th>
-                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                    Cravadas
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankingTotalPontos.map((linha, index) => (
-                  <tr key={linha.participante.id}>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                      {index + 1}
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
-  <div className="flex items-center gap-2">
-    {index === 0 && (
-      <Trophy className="h-4 w-4 text-yellow-500" />
+    {erroJogos && (
+      <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        {erroJogos}
+      </div>
     )}
-    {nomeParticipanteVisivel(linha.participante)}
-  </div>
-</td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-zinc-900 dark:border-zinc-800 dark:text-zinc-50">
-                      {linha.pontos}
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
-                      {linha.cravadas}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
-      {tabelaPronta && (
+    {meuParticipante && rodadaAnterior && (
+      <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+        Rodadas anteriores estao fechadas para novos palpites.
+      </div>
+    )}
+
+    {meuParticipante && !rodadaAnterior && rodadaJaSalva && (
+      <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+        Seus palpites desta rodada ja foram salvos.
+      </div>
+    )}
+
+    {tabelaPronta && (
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1180px] border-separate border-spacing-0">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-20 border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+                PARTICIPANTE
+              </th>
+
+              {jogos.map((jogo) => (
+                <th
+                  key={jogo.id}
+                  className="min-w-[110px] border-b border-zinc-200 bg-zinc-50 px-3 py-4 text-center dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
+                      {jogo.homeTeam?.tla}
+                    </span>
+                    <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">-</span>
+                    <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
+                      {jogo.awayTeam?.tla}
+                    </span>
+                  </div>
+                </th>
+              ))}
+
+              <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+                CRAVADAS
+              </th>
+              <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+                PONTOS
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {participantes.map((participante) => {
+              const isMinhaLinha =
+                minhaLinhaId && String(minhaLinhaId) === String(participante.id);
+              const podeEditar = podeEditarMinhaLinha && isMinhaLinha;
+              const minhaLinhaSalva = isMinhaLinha && rodadaJaSalva;
+              const minhaLinhaEncerrada =
+                isMinhaLinha && !rodadaJaSalva && rodadaAnterior;
+
+              const badgeBloqueioClasses = minhaLinhaSalva
+                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300"
+                : minhaLinhaEncerrada
+                ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300"
+                : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
+
+              const IconeLinhaBloqueada = minhaLinhaSalva ? CircleCheck : Lock;
+              const resumo = resumoParticipante(participante.id);
+
+              return (
+                <tr key={participante.id}>
+                  <td className="sticky left-0 z-10 border-b border-zinc-100 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-100">
+                        {nomeParticipanteVisivel(participante)}
+                      </span>
+
+                      {!podeEditar && (
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full p-1 ${badgeBloqueioClasses}`}
+                          title={
+                            minhaLinhaSalva
+                              ? "Seus palpites foram salvos"
+                              : "Palpites bloqueados"
+                          }
+                        >
+                          <IconeLinhaBloqueada className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {jogos.map((jogo) => {
+                    const valor = palpites[participante.id]?.[jogo.id] || "";
+
+                    return (
+                      <td
+                        key={jogo.id}
+                        className="border-b border-zinc-100 px-2 py-3 text-center dark:border-zinc-800"
+                      >
+                        {podeEditar ? (
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={3}
+                            placeholder="0-0"
+                            value={valor}
+                            onChange={(e) =>
+                              handlePalpiteChange(
+                                participante.id,
+                                jogo.id,
+                                e.target.value
+                              )
+                            }
+                            className={`w-[70px] rounded-xl border px-2 py-2 text-center text-sm font-semibold outline-none transition ${classeCelula(
+                              valor,
+                              jogo,
+                              true
+                            )}`}
+                          />
+                        ) : (
+                          renderCelulaBloqueada(valor, jogo, minhaLinhaSalva)
+                        )}
+                      </td>
+                    );
+                  })}
+
+                  <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
+                    {resumo.cravadas}
+                  </td>
+
+                  <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
+                    {resumo.pontos}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+
+          <tfoot>
+            <tr>
+              <td className="sticky left-0 z-10 border-t-2 border-violet-400 bg-violet-50 px-4 py-4 text-left text-sm font-black uppercase tracking-wide text-violet-900 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100">
+                Placar final
+              </td>
+
+              {jogos.map((jogo) => (
+                <td
+                  key={jogo.id}
+                  className="border-t-2 border-violet-400 bg-zinc-50 px-3 py-4 text-center text-lg font-bold text-zinc-800 dark:border-violet-500 dark:bg-zinc-950 dark:text-zinc-100"
+                >
+                  {placarFinal(jogo)}
+                </td>
+              ))}
+
+              <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
+              <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    )}
+
+    {participantes.length > 0 && (
+      <div className="mt-6 mb-5">
+        <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
+              Ranking
+            </p>
+            <h3 className="text-lg font-black text-zinc-900 dark:text-zinc-50">
+              Total pontos
+            </h3>
+          </div>
+
+          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            Rodadas {RODADA_INICIAL_BOLAO}-{RODADA_FINAL_BOLAO}
+          </span>
+        </div>
+
+        {erroTotais && (
+          <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+            {erroTotais}
+          </div>
+        )}
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] border-separate border-spacing-0">
+          <table className="w-full min-w-[520px] border-separate border-spacing-0">
             <thead>
               <tr>
-                <th className="sticky left-0 z-20 border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
-                  PARTICIPANTE
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                  Pos
                 </th>
 
-                {jogos.map((jogo) => (
-                  <th
-                    key={jogo.id}
-                    className="min-w-[110px] border-b border-zinc-200 bg-zinc-50 px-3 py-4 text-center dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
-                        {jogo.homeTeam?.tla}
-                      </span>
-                      <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">-</span>
-                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
-                        {jogo.awayTeam?.tla}
-                      </span>
-                    </div>
-                  </th>
-                ))}
-
-                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
-                  CRAVADAS
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                  Participante
                 </th>
-                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
-                  PONTOS
+
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                  Pontos
+                </th>
+
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                  Cravadas
                 </th>
               </tr>
             </thead>
 
             <tbody>
-              {participantes.map((participante) => {
-                const isMinhaLinha =
-                  minhaLinhaId && String(minhaLinhaId) === String(participante.id);
-                const podeEditar =
-                  podeEditarMinhaLinha && isMinhaLinha;
-                const minhaLinhaSalva = isMinhaLinha && rodadaJaSalva;
-                const minhaLinhaEncerrada =
-                  isMinhaLinha && !rodadaJaSalva && rodadaAnterior;
-                const badgeBloqueioClasses = minhaLinhaSalva
-                  ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300"
-                  : minhaLinhaEncerrada
-                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300"
-                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
-                const IconeLinhaBloqueada = minhaLinhaSalva ? CircleCheck : Lock;
-                const resumo = resumoParticipante(participante.id);
-
-                return (
-                  <tr key={participante.id}>
-                    <td className="sticky left-0 z-10 border-b border-zinc-100 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-100">
-                          {nomeParticipanteVisivel(participante)}
-                        </span>
-                        {!podeEditar && (
-                          <span
-                            className={`inline-flex items-center justify-center rounded-full p-1 ${badgeBloqueioClasses}`}
-                            title={
-                              minhaLinhaSalva
-                                ? "Seus palpites foram salvos"
-                                : "Palpites bloqueados"
-                            }
-                          >
-                            <IconeLinhaBloqueada className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {jogos.map((jogo) => {
-                      const valor = palpites[participante.id]?.[jogo.id] || "";
-
-                      return (
-                        <td
-                          key={jogo.id}
-                          className="border-b border-zinc-100 px-2 py-3 text-center dark:border-zinc-800"
-                        >
-                          {podeEditar ? (
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={3}
-                              placeholder="0-0"
-                              value={valor}
-                              onChange={(e) =>
-                                handlePalpiteChange(
-                                  participante.id,
-                                  jogo.id,
-                                  e.target.value
-                                )
-                              }
-                              className={`w-[70px] rounded-xl border px-2 py-2 text-center text-sm font-semibold outline-none transition ${classeCelula(
-                                valor,
-                                jogo,
-                                true
-                              )}`}
-                            />
-                          ) : (
-                            renderCelulaBloqueada(valor, jogo, minhaLinhaSalva)
-                          )}
-                        </td>
-                      );
-                    })}
-
-                    <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
-                      {resumo.cravadas}
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
-                      {resumo.pontos}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-
-            <tfoot>
-              <tr>
-                <td className="sticky left-0 z-10 border-t-2 border-violet-400 bg-violet-50 px-4 py-4 text-left text-sm font-black uppercase tracking-wide text-violet-900 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100">
-                  Placar final
-                </td>
-
-                {jogos.map((jogo) => (
-                  <td
-                    key={jogo.id}
-                    className="border-t-2 border-violet-400 bg-zinc-50 px-3 py-4 text-center text-lg font-bold text-zinc-800 dark:border-violet-500 dark:bg-zinc-950 dark:text-zinc-100"
-                  >
-                    {placarFinal(jogo)}
+              {rankingTotalPontos.map((linha, index) => (
+                <tr key={linha.participante.id}>
+                  <td className="border-b border-zinc-100 px-4 py-3 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                    {index + 1}
                   </td>
-                ))}
 
-                <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
-                <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
-              </tr>
-            </tfoot>
+                  <td className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
+                    <div className="flex items-center gap-2">
+                      {index === 0 && (
+                        <Trophy className="h-4 w-4 text-yellow-500" />
+                      )}
+
+                      {nomeParticipanteVisivel(linha.participante)}
+                    </div>
+                  </td>
+
+                  <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-zinc-900 dark:border-zinc-800 dark:text-zinc-50">
+                    {linha.pontos}
+                  </td>
+
+                  <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
+                    {linha.cravadas}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
-      {!user && (
-        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-          Você precisa estar logado para editar seus palpites.
-        </div>
-      )}
-    </section>
-  );
+    {!user && (
+      <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+        Você precisa estar logado para editar seus palpites.
+      </div>
+    )}
+  </section>
+);
 }

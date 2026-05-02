@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LogIn, LogOut, Moon, Sun } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase"; 
+import { supabase } from "../lib/supabase";
 
 import HeroBannerCanal from "../components/Header";
 import LoginModal from "../components/LoginModal";
@@ -96,7 +96,9 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
               type="button"
               onClick={onToggleTema}
               aria-pressed={modoNoturno}
-              aria-label={modoNoturno ? "Ativar modo claro" : "Ativar modo noturno"}
+              aria-label={
+                modoNoturno ? "Ativar modo claro" : "Ativar modo noturno"
+              }
               title={modoNoturno ? "Ativar modo claro" : "Ativar modo noturno"}
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
             >
@@ -107,10 +109,14 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
       </div>
 
       <div className="p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <TabelaJogos />
-          <TabelaRodada />
-        </div>
+       <div className="grid gap-4 md:grid-cols-10">
+  <div className="col-span-6">
+    <TabelaJogos />
+  </div>
+  <div className="col-span-4">
+    <TabelaRodada />
+  </div>
+</div>
       </div>
 
       <TabelaBolao key={user?.id || "guest"} />

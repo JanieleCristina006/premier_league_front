@@ -813,20 +813,16 @@ export default function TabelaBolao() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-zinc-700 dark:bg-emerald-950/40 dark:text-emerald-100">
           <span className="h-4 w-4 rounded-md bg-emerald-500" />
-          <span className="h-3 w-3 rounded-full bg-emerald-400" />
           <span>CRAVADA +3</span>
         </div>
 
         <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-zinc-700 dark:bg-sky-950/40 dark:text-sky-100">
           <span className="h-4 w-4 rounded-md bg-sky-500" />
-          <span className="h-3 w-3 rounded-full bg-sky-400" />
           <span>VENCEDOR +1</span>
         </div>
 
         <div className="flex items-center gap-3">
-          <label htmlFor="rodada" className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-            Rodada
-          </label>
+          
 
           <select
             id="rodada"

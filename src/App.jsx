@@ -10,6 +10,27 @@ import ResetPassword from "./pages/ResetPassword";
 
 const THEME_STORAGE_KEY = "bolao-modo-noturno";
 
+const limparTexto = (valor) => {
+  const texto = typeof valor === "string" ? valor.trim() : "";
+
+  return texto || null;
+};
+
+const obterNomeDoPerfil = (user) =>
+  limparTexto(user.user_metadata?.name) ||
+  limparTexto(user.user_metadata?.full_name);
+
+const nomePareceEmail = (nome, email) => {
+  const nomeNormalizado = limparTexto(nome)?.toLowerCase();
+  const emailNormalizado = limparTexto(email)?.toLowerCase();
+  const usuarioDoEmail = emailNormalizado?.split("@")[0];
+
+  return (
+    !!nomeNormalizado &&
+    (nomeNormalizado === emailNormalizado || nomeNormalizado === usuarioDoEmail)
+  );
+};
+
 const obterTemaInicial = () => {
   if (typeof window === "undefined") {
     return false;
@@ -25,6 +46,8 @@ const obterTemaInicial = () => {
 };
 
 async function garantirParticipante(user) {
+  const nomeDoPerfil = obterNomeDoPerfil(user);
+
   const { data: existente, error: erroBusca } = await supabase
     .from("participants")
     .select("*")
@@ -37,14 +60,9 @@ async function garantirParticipante(user) {
   }
 
   if (!existente) {
-    const nome =
-      user.user_metadata?.name ||
-      user.email?.split("@")[0] ||
-      "Participante";
-
     const { error: erroInsert } = await supabase.from("participants").insert({
       user_id: user.id,
-      name: nome,
+      name: nomeDoPerfil || "Participante",
     });
 
     if (erroInsert) {
@@ -53,12 +71,42 @@ async function garantirParticipante(user) {
     }
 
     console.log("Participante criado com sucesso");
+    return;
+  }
+
+  const deveAtualizarNome =
+    nomeDoPerfil &&
+    nomeDoPerfil !== existente.name &&
+    (!limparTexto(existente.name) || nomePareceEmail(existente.name, user.email));
+
+  if (deveAtualizarNome) {
+    const { error: erroUpdate } = await supabase
+      .from("participants")
+      .update({ name: nomeDoPerfil })
+      .eq("id", existente.id);
+
+    if (erroUpdate) {
+      console.error("Erro ao atualizar nome do participante:", erroUpdate);
+      return;
+    }
+
+    console.log("Nome do participante atualizado com sucesso");
   }
 }
 
 export default function App() {
   const [user, setUser] = useState(undefined);
   const [modoNoturno, setModoNoturno] = useState(obterTemaInicial);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw error;
+    }
+
+    setUser(null);
+  };
 
   useEffect(() => {
     async function carregarUsuario() {
@@ -113,6 +161,7 @@ export default function App() {
             <Home
               user={user}
               modoNoturno={modoNoturno}
+              onLogout={handleLogout}
               onToggleTema={() => setModoNoturno((valorAtual) => !valorAtual)}
             />
           }

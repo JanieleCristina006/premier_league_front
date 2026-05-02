@@ -1,14 +1,60 @@
-import { useState } from "react";
-import { LogIn, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LogIn, LogOut, Moon, Sun } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase"; 
+
 import HeroBannerCanal from "../components/Header";
 import LoginModal from "../components/LoginModal";
 import TabelaBolao from "../components/TabelaBolao";
 import TabelaJogos from "../components/TabelaDeJogos";
 import { TabelaRodada } from "../components/TabelaRodada";
 
-export default function Home({ user, modoNoturno, onToggleTema }) {
+export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
+  const navigate = useNavigate();
   const [loginAberto, setLoginAberto] = useState(false);
+  const [saindo, setSaindo] = useState(false);
+  const [nomeUsuario, setNomeUsuario] = useState("");
+
   const IconeTema = modoNoturno ? Sun : Moon;
+
+  useEffect(() => {
+    async function buscarNomeUsuario() {
+      if (!user?.id) {
+        setNomeUsuario("");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("participants")
+        .select("name")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) {
+        console.error(error);
+        setNomeUsuario(user.email || "Usuário");
+        return;
+      }
+
+      setNomeUsuario(data?.name || user.email || "Usuário");
+    }
+
+    buscarNomeUsuario();
+  }, [user]);
+
+  const handleSair = async () => {
+    setSaindo(true);
+
+    try {
+      await onLogout?.();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error.message || "Não foi possível sair.");
+    } finally {
+      setSaindo(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 transition-colors dark:bg-zinc-950 dark:text-zinc-100">
@@ -16,7 +62,13 @@ export default function Home({ user, modoNoturno, onToggleTema }) {
 
       <div className="border-b border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-7xl justify-end px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            {user && (
+              <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                Bem vindo(a), {nomeUsuario}
+              </span>
+            )}
+
             {!user && (
               <button
                 type="button"
@@ -25,6 +77,18 @@ export default function Home({ user, modoNoturno, onToggleTema }) {
               >
                 <LogIn className="h-4 w-4" />
                 Fazer login
+              </button>
+            )}
+
+            {user && (
+              <button
+                type="button"
+                onClick={handleSair}
+                disabled={saindo}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+              >
+                <LogOut className="h-4 w-4" />
+                {saindo ? "Saindo..." : "Sair"}
               </button>
             )}
 

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { CircleCheck, Lock, Save } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CircleCheck, Lock, Save,Trophy } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { supabase } from "../lib/supabase";
+
 import {
   getFixturesByRound,
   getRounds,
@@ -9,13 +10,34 @@ import {
   SEASON,
 } from "../services/api";
 
-const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
+const RODADA_INICIAL_BOLAO = 35;
+const RODADA_FINAL_BOLAO = 38;
+const RODADAS_FALLBACK = Array.from(
+  { length: RODADA_FINAL_BOLAO - RODADA_INICIAL_BOLAO + 1 },
+  (_, i) => RODADA_INICIAL_BOLAO + i
+);
 const STATUS_ENCERRADOS = new Set([
   "FINISHED",
   "AWARDED",
   "CANCELED",
   "CANCELLED",
 ]);
+
+const nomeParticipanteVisivel = (participante) => {
+  const nome = participante?.name?.trim();
+
+  if (!nome || nome.includes("@")) {
+    return "Participante";
+  }
+
+  return nome;
+};
+
+const numeroInteiroSeguro = (valor) => {
+  const numero = Number(valor);
+
+  return Number.isInteger(numero) ? numero : 0;
+};
 
 const extrairRodadaAtual = (data) => {
   const candidatos = [
@@ -61,8 +83,154 @@ const calcularRodadaAtual = (matches = []) => {
   return rodadaAberta || rodadasOrdenadas.at(-1) || 1;
 };
 
+const filtrarRodadasDoBolao = (rodadas = []) => {
+  const rodadasFiltradas = rodadas
+    .map(Number)
+    .filter(
+      (rodada) =>
+        Number.isInteger(rodada) &&
+        rodada >= RODADA_INICIAL_BOLAO &&
+        rodada <= RODADA_FINAL_BOLAO
+    );
+
+  return rodadasFiltradas.length ? rodadasFiltradas : RODADAS_FALLBACK;
+};
+
+const limitarRodadaDoBolao = (rodada) => {
+  const rodadaNumero = Number(rodada);
+
+  if (!Number.isInteger(rodadaNumero)) {
+    return String(RODADA_INICIAL_BOLAO);
+  }
+
+  return String(
+    Math.min(
+      Math.max(rodadaNumero, RODADA_INICIAL_BOLAO),
+      RODADA_FINAL_BOLAO
+    )
+  );
+};
+
+const formatarPalpite = (valor) => {
+  const numeros = valor.replace(/\D/g, "").slice(0, 2);
+
+  if (numeros.length <= 1) return numeros;
+  return `${numeros[0]}-${numeros[1]}`;
+};
+
+const parsePalpite = (palpite) => {
+  if (!palpite || !palpite.includes("-")) return null;
+
+  const [casa, fora] = palpite.split("-").map(Number);
+
+  if (Number.isNaN(casa) || Number.isNaN(fora)) return null;
+
+  return { casa, fora };
+};
+
+const resultadoPartida = (casa, fora) => {
+  if (casa > fora) return "CASA";
+  if (fora > casa) return "FORA";
+  return "EMPATE";
+};
+
+const tipoAcerto = (palpiteTexto, jogo) => {
+  const palpite = parsePalpite(palpiteTexto);
+  const realCasa = jogo.score?.fullTime?.home;
+  const realFora = jogo.score?.fullTime?.away;
+
+  if (!palpite) return "nenhum";
+  if (realCasa == null || realFora == null) return "nenhum";
+
+  const cravou = palpite.casa === realCasa && palpite.fora === realFora;
+  if (cravou) return "cravada";
+
+  const resultadoPalpite = resultadoPartida(palpite.casa, palpite.fora);
+  const resultadoReal = resultadoPartida(realCasa, realFora);
+
+  if (resultadoPalpite === resultadoReal) return "vencedor";
+
+  return "nenhum";
+};
+
+const criarMapaPalpites = (dados = []) => {
+  const mapa = {};
+
+  dados.forEach((item) => {
+    if (!mapa[item.participant_id]) {
+      mapa[item.participant_id] = {};
+    }
+
+    mapa[item.participant_id][item.match_id] =
+      `${item.home_goals}-${item.away_goals}`;
+  });
+
+  return mapa;
+};
+
+const calcularResumoParticipante = (participanteId, palpitesPorParticipante, jogos) => {
+  return jogos.reduce(
+    (resumo, jogo) => {
+      const palpite = palpitesPorParticipante[participanteId]?.[jogo.id] || "";
+      const tipo = tipoAcerto(palpite, jogo);
+
+      if (tipo === "cravada") {
+        return {
+          pontos: resumo.pontos + 3,
+          cravadas: resumo.cravadas + 1,
+        };
+      }
+
+      if (tipo === "vencedor") {
+        return {
+          ...resumo,
+          pontos: resumo.pontos + 1,
+        };
+      }
+
+      return resumo;
+    },
+    { pontos: 0, cravadas: 0 }
+  );
+};
+
+const criarPayloadTotalPontos = (participantes, palpitesPorParticipante, jogos, rodada) =>
+  participantes.map((participante) => {
+    const resumo = calcularResumoParticipante(
+      participante.id,
+      palpitesPorParticipante,
+      jogos
+    );
+
+    return {
+      participant_id: participante.id,
+      round: Number(rodada),
+      season: SEASON,
+      pontos: resumo.pontos,
+      cravadas: resumo.cravadas,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+const chaveTotalPontos = (item) =>
+  `${item.participant_id}-${item.round}-${item.season}`;
+
+const mesclarTotais = (totaisAtuais, novosTotais) => {
+  const mapa = new Map(
+    totaisAtuais.map((item) => [chaveTotalPontos(item), item])
+  );
+
+  novosTotais.forEach((item) => {
+    mapa.set(chaveTotalPontos(item), item);
+  });
+
+  return Array.from(mapa.values());
+};
+
 export default function TabelaBolao() {
-  const [rodadaSelecionada, setRodadaSelecionada] = useState("1");
+  const [rodadaSelecionada, setRodadaSelecionada] = useState(
+    String(RODADA_INICIAL_BOLAO)
+  );
   const [jogos, setJogos] = useState([]);
   const [participantes, setParticipantes] = useState([]);
   const [palpites, setPalpites] = useState({});
@@ -72,15 +240,21 @@ export default function TabelaBolao() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erroJogos, setErroJogos] = useState("");
+  const [erroTotais, setErroTotais] = useState("");
   const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
   const [rodadaAtual, setRodadaAtual] = useState(null);
   const [rodadasSalvas, setRodadasSalvas] = useState(() => new Set());
+  const [totaisRodadas, setTotaisRodadas] = useState([]);
+  const [rodadaPalpitesCarregada, setRodadaPalpitesCarregada] = useState("");
+  const [palpitesSujo, setPalpitesSujo] = useState(false);
 
   useEffect(() => {
     const carregarRodadas = async () => {
       try {
         const data = await getRounds();
-        const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
+        const matchdays = filtrarRodadasDoBolao(
+          data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK
+        );
         setRodadas(matchdays);
 
         const rodadaAtualDaApi = extrairRodadaAtual(data);
@@ -90,9 +264,11 @@ export default function TabelaBolao() {
           setRodadaSelecionada((rodadaSelecionadaAtual) => {
             const selecionada = Number(rodadaSelecionadaAtual);
 
-            return selecionada >= rodadaAtualDaApi
-              ? rodadaSelecionadaAtual
-              : String(rodadaAtualDaApi);
+            return limitarRodadaDoBolao(
+              selecionada >= rodadaAtualDaApi
+                ? rodadaSelecionadaAtual
+                : rodadaAtualDaApi
+            );
           });
         }
       } catch (error) {
@@ -119,9 +295,11 @@ export default function TabelaBolao() {
         setRodadaSelecionada((rodadaSelecionadaAtual) => {
           const selecionada = Number(rodadaSelecionadaAtual);
 
-          return selecionada >= rodadaCalculada
-            ? rodadaSelecionadaAtual
-            : String(rodadaCalculada);
+          return limitarRodadaDoBolao(
+            selecionada >= rodadaCalculada
+              ? rodadaSelecionadaAtual
+              : rodadaCalculada
+          );
         });
       } catch (error) {
         console.error("Erro ao calcular rodada atual:", error);
@@ -163,6 +341,34 @@ export default function TabelaBolao() {
     };
 
     carregarParticipantes();
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarTotais = async () => {
+      const { data, error } = await supabase
+        .from("total_pontos")
+        .select("*")
+        .eq("season", SEASON);
+
+      if (!ativo) return;
+
+      if (error) {
+        console.error("Erro ao carregar total de pontos:", error);
+        setErroTotais("Nao foi possivel carregar a tabela total_pontos.");
+        return;
+      }
+
+      setTotaisRodadas(data || []);
+      setErroTotais("");
+    };
+
+    carregarTotais();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -210,30 +416,27 @@ export default function TabelaBolao() {
   }, [rodadaSelecionada]);
 
   useEffect(() => {
+    let ativo = true;
+
     const carregarPalpites = async () => {
+      setRodadaPalpitesCarregada("");
+      setPalpitesSujo(false);
+
       const { data, error } = await supabase
         .from("predictions")
         .select("*")
         .eq("round", Number(rodadaSelecionada))
         .eq("season", SEASON);
 
+      if (!ativo) return;
+
       if (error) {
         console.error("Erro ao carregar palpites:", error);
         return;
       }
 
-      const mapa = {};
-
-      (data || []).forEach((item) => {
-        if (!mapa[item.participant_id]) {
-          mapa[item.participant_id] = {};
-        }
-
-        mapa[item.participant_id][item.match_id] =
-          `${item.home_goals}-${item.away_goals}`;
-      });
-
-      setPalpites(mapa);
+      setPalpites(criarMapaPalpites(data || []));
+      setRodadaPalpitesCarregada(rodadaSelecionada);
 
       if (meuParticipante) {
         const rodadaNumero = Number(rodadaSelecionada);
@@ -256,18 +459,16 @@ export default function TabelaBolao() {
     };
 
     carregarPalpites();
+
+    return () => {
+      ativo = false;
+    };
   }, [meuParticipante, rodadaSelecionada]);
-
-  const formatarPalpite = (valor) => {
-    const numeros = valor.replace(/\D/g, "").slice(0, 2);
-
-    if (numeros.length <= 1) return numeros;
-    return `${numeros[0]}-${numeros[1]}`;
-  };
 
   const handlePalpiteChange = (participanteId, jogoId, valor) => {
     const formatado = formatarPalpite(valor);
 
+    setPalpitesSujo(true);
     setPalpites((prev) => ({
       ...prev,
       [participanteId]: {
@@ -277,54 +478,8 @@ export default function TabelaBolao() {
     }));
   };
 
-  const parsePalpite = (palpite) => {
-    if (!palpite || !palpite.includes("-")) return null;
-
-    const [casa, fora] = palpite.split("-").map(Number);
-
-    if (Number.isNaN(casa) || Number.isNaN(fora)) return null;
-
-    return { casa, fora };
-  };
-
-  const resultadoPartida = (casa, fora) => {
-    if (casa > fora) return "CASA";
-    if (fora > casa) return "FORA";
-    return "EMPATE";
-  };
-
-  const tipoAcerto = (palpiteTexto, jogo) => {
-    const palpite = parsePalpite(palpiteTexto);
-    const realCasa = jogo.score?.fullTime?.home;
-    const realFora = jogo.score?.fullTime?.away;
-
-    if (!palpite) return "nenhum";
-    if (realCasa == null || realFora == null) return "nenhum";
-
-    const cravou = palpite.casa === realCasa && palpite.fora === realFora;
-    if (cravou) return "cravada";
-
-    const resultadoPalpite = resultadoPartida(palpite.casa, palpite.fora);
-    const resultadoReal = resultadoPartida(realCasa, realFora);
-
-    if (resultadoPalpite === resultadoReal) return "vencedor";
-
-    return "nenhum";
-  };
-
-  const pontosCelula = (palpiteTexto, jogo) => {
-    const tipo = tipoAcerto(palpiteTexto, jogo);
-    if (tipo === "cravada") return 3;
-    if (tipo === "vencedor") return 1;
-    return 0;
-  };
-
-  const totalParticipante = (participanteId) => {
-    return jogos.reduce((total, jogo) => {
-      const palpite = palpites[participanteId]?.[jogo.id] || "";
-      return total + pontosCelula(palpite, jogo);
-    }, 0);
-  };
+  const resumoParticipante = (participanteId) =>
+    calcularResumoParticipante(participanteId, palpites, jogos);
 
   const classeCelula = (palpiteTexto, jogo, podeEditar) => {
     const tipo = tipoAcerto(palpiteTexto, jogo);
@@ -351,6 +506,165 @@ export default function TabelaBolao() {
     if (casa == null || fora == null) return "-";
     return `${casa}-${fora}`;
   };
+
+  const salvarTotalPontos = useCallback(async (payload) => {
+    if (payload.length === 0) return true;
+
+    const { data, error } = await supabase
+      .from("total_pontos")
+      .upsert(payload, {
+        onConflict: "participant_id,round,season",
+      })
+      .select("*");
+
+    if (error) {
+      console.error("Erro ao salvar total de pontos:", error);
+      setErroTotais("Nao foi possivel salvar a tabela total_pontos.");
+      return false;
+    }
+
+    setTotaisRodadas((prev) => mesclarTotais(prev, data?.length ? data : payload));
+    setErroTotais("");
+    return true;
+  }, []);
+
+  useEffect(() => {
+    if (!user || participantes.length === 0) return;
+
+    let ativo = true;
+
+    const sincronizarTotais = async () => {
+      const { data: palpitesSalvos, error } = await supabase
+        .from("predictions")
+        .select("*")
+        .eq("season", SEASON)
+        .in("round", RODADAS_FALLBACK);
+
+      if (!ativo) return;
+
+      if (error) {
+        console.error("Erro ao carregar palpites para total_pontos:", error);
+        return;
+      }
+
+      const palpitesPorRodada = new Map();
+
+      (palpitesSalvos || []).forEach((palpite) => {
+        const rodada = Number(palpite.round);
+
+        if (!Number.isInteger(rodada)) return;
+
+        if (!palpitesPorRodada.has(rodada)) {
+          palpitesPorRodada.set(rodada, []);
+        }
+
+        palpitesPorRodada.get(rodada).push(palpite);
+      });
+
+      const jogosPorRodada = await Promise.all(
+        RODADAS_FALLBACK.map(async (rodada) => {
+          try {
+            const data = await getFixturesByRound(rodada);
+            return { rodada, jogos: data.matches || [] };
+          } catch (error) {
+            console.error(`Erro ao buscar jogos da rodada ${rodada}:`, error);
+            return { rodada, jogos: [] };
+          }
+        })
+      );
+
+      if (!ativo) return;
+
+      const payload = jogosPorRodada.flatMap(({ rodada, jogos: jogosRodada }) =>
+        jogosRodada.length === 0
+          ? []
+          : criarPayloadTotalPontos(
+              participantes,
+              criarMapaPalpites(palpitesPorRodada.get(rodada) || []),
+              jogosRodada,
+              rodada
+            )
+      );
+
+      await salvarTotalPontos(payload);
+    };
+
+    sincronizarTotais();
+
+    return () => {
+      ativo = false;
+    };
+  }, [participantes, salvarTotalPontos, user]);
+
+  useEffect(() => {
+    if (
+      !user ||
+      participantes.length === 0 ||
+      loading ||
+      erroJogos ||
+      jogos.length === 0 ||
+      palpitesSujo ||
+      rodadaPalpitesCarregada !== rodadaSelecionada
+    ) {
+      return;
+    }
+
+    const sincronizarRodadaSelecionada = async () => {
+      const payload = criarPayloadTotalPontos(
+        participantes,
+        palpites,
+        jogos,
+        rodadaSelecionada
+      );
+
+      await salvarTotalPontos(payload);
+    };
+
+    sincronizarRodadaSelecionada();
+  }, [
+    erroJogos,
+    jogos,
+    loading,
+    palpites,
+    palpitesSujo,
+    participantes,
+    rodadaPalpitesCarregada,
+    rodadaSelecionada,
+    salvarTotalPontos,
+    user,
+  ]);
+
+  const rankingTotalPontos = useMemo(() => {
+    const mapa = new Map();
+
+    participantes.forEach((participante) => {
+      mapa.set(String(participante.id), {
+        participante,
+        pontos: numeroInteiroSeguro(participante.pontos_rodada_anterior),
+        cravadas: numeroInteiroSeguro(participante.cravadas_rodada_anterior),
+      });
+    });
+
+    totaisRodadas.forEach((item) => {
+      const key = String(item.participant_id);
+      const linha = mapa.get(key);
+
+      if (!linha) return;
+
+      linha.pontos += Number(item.pontos || 0);
+      linha.cravadas += Number(item.cravadas || 0);
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.cravadas !== a.cravadas) return b.cravadas - a.cravadas;
+
+      return nomeParticipanteVisivel(a.participante).localeCompare(
+        nomeParticipanteVisivel(b.participante),
+        "pt-BR"
+      );
+    });
+  }, [participantes, totaisRodadas]);
 
   const rodadaSelecionadaNumero = Number(rodadaSelecionada);
   const minhaLinhaId = meuParticipante?.id ?? null;
@@ -439,6 +753,7 @@ export default function TabelaBolao() {
         next.add(rodadaSelecionadaNumero);
         return next;
       });
+      setPalpitesSujo(false);
       toast.success("Palpites salvos com sucesso.");
     } finally {
       setSalvando(false);
@@ -561,9 +876,77 @@ export default function TabelaBolao() {
         </div>
       )}
 
+      {participantes.length > 0 && (
+        <div className="mb-5">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
+                Ranking
+              </p>
+              <h3 className="text-lg font-black text-zinc-900 dark:text-zinc-50">
+                Total pontos
+              </h3>
+            </div>
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              Rodadas {RODADA_INICIAL_BOLAO}-{RODADA_FINAL_BOLAO}
+            </span>
+          </div>
+
+          {erroTotais && (
+            <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+              {erroTotais}
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                    Pos
+                  </th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                    Participante
+                  </th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                    Pontos
+                  </th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                    Cravadas
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankingTotalPontos.map((linha, index) => (
+                  <tr key={linha.participante.id}>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                      {index + 1}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
+  <div className="flex items-center gap-2">
+    {index === 0 && (
+      <Trophy className="h-4 w-4 text-yellow-500" />
+    )}
+    {nomeParticipanteVisivel(linha.participante)}
+  </div>
+</td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-zinc-900 dark:border-zinc-800 dark:text-zinc-50">
+                      {linha.pontos}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-center text-base font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
+                      {linha.cravadas}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {tabelaPronta && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] border-separate border-spacing-0">
+          <table className="w-full min-w-[1180px] border-separate border-spacing-0">
             <thead>
               <tr>
                 <th className="sticky left-0 z-20 border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
@@ -588,6 +971,9 @@ export default function TabelaBolao() {
                 ))}
 
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+                  CRAVADAS
+                </th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-sm font-bold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
                   PONTOS
                 </th>
               </tr>
@@ -608,13 +994,14 @@ export default function TabelaBolao() {
                   ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300"
                   : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
                 const IconeLinhaBloqueada = minhaLinhaSalva ? CircleCheck : Lock;
+                const resumo = resumoParticipante(participante.id);
 
                 return (
                   <tr key={participante.id}>
                     <td className="sticky left-0 z-10 border-b border-zinc-100 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-zinc-800 dark:text-zinc-100">
-                          {participante.name}
+                          {nomeParticipanteVisivel(participante)}
                         </span>
                         {!podeEditar && (
                           <span
@@ -666,8 +1053,11 @@ export default function TabelaBolao() {
                       );
                     })}
 
+                    <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-emerald-600 dark:border-zinc-800 dark:text-emerald-300">
+                      {resumo.cravadas}
+                    </td>
                     <td className="border-b border-zinc-100 px-4 py-4 text-center text-lg font-black text-zinc-800 dark:border-zinc-800 dark:text-zinc-100">
-                      {totalParticipante(participante.id)}
+                      {resumo.pontos}
                     </td>
                   </tr>
                 );
@@ -689,6 +1079,7 @@ export default function TabelaBolao() {
                   </td>
                 ))}
 
+                <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
                 <td className="border-t-2 border-violet-400 bg-zinc-50 px-4 py-4 dark:border-violet-500 dark:bg-zinc-950" />
               </tr>
             </tfoot>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { supabase } from "../lib/supabase";
 
@@ -12,7 +13,9 @@ export default function LoginForm({ onSuccess }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+  const IconeSenha = mostrarSenha ? EyeOff : Eye;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,15 +142,27 @@ export default function LoginForm({ onSuccess }) {
           <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">
             Senha
           </label>
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            placeholder="********"
-            required={!modoRecuperacao}
-            disabled={modoRecuperacao}
-            className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-          />
+          <div className="relative">
+            <input
+              type={mostrarSenha ? "text" : "password"}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="********"
+              required={!modoRecuperacao}
+              disabled={modoRecuperacao}
+              className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 pr-12 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha((valorAtual) => !valorAtual)}
+              disabled={modoRecuperacao}
+              aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            >
+              <IconeSenha className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <button

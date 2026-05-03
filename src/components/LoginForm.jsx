@@ -196,21 +196,21 @@ export default function LoginForm({ onSuccess }) {
       )}
 
       <div className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-        {modoRecuperacao
+        {/* {modoRecuperacao
           ? "Lembrou a senha?"
           : modoCadastro
           ? "Ja tem conta?"
-          : "Ainda nao tem conta?"}{" "}
+          : "Ainda nao tem conta?"}{" "} */}
         <button
           type="button"
           onClick={alternarModoPrincipal}
           className="font-semibold text-zinc-900 hover:underline dark:text-zinc-100"
         >
-          {modoRecuperacao
+          {/* {modoRecuperacao
             ? "Voltar para entrar"
             : modoCadastro
             ? "Entrar"
-            : "Criar conta"}
+            : "Criar conta"} */}
         </button>
       </div>
     </div>

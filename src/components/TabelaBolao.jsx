@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CircleCheck, Lock, Save,Trophy } from "lucide-react";
+import { CircleCheck, Lock, LogIn, Save, Trophy } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 import {
@@ -847,6 +848,19 @@ export default function TabelaBolao({ user }) {
       </div>
     )}
 
+    {!user && (
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-950/40 dark:text-amber-200">
+        <span>Entre na sua conta para preencher e salvar seus palpites.</span>
+        <Link
+          to="/login"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+        >
+          <LogIn className="h-4 w-4" />
+          Entrar
+        </Link>
+      </div>
+    )}
+
     {meuParticipante && rodadaAnterior && (
       <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
         Rodadas anteriores estao fechadas para novos palpites.
@@ -1082,11 +1096,6 @@ export default function TabelaBolao({ user }) {
       </div>
     )}
 
-    {!user && (
-      <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-        Você precisa estar logado para editar seus palpites.
-      </div>
-    )}
   </section>
 );
 }

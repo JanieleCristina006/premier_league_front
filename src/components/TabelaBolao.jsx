@@ -227,14 +227,13 @@ const mesclarTotais = (totaisAtuais, novosTotais) => {
   return Array.from(mapa.values());
 };
 
-export default function TabelaBolao() {
+export default function TabelaBolao({ user }) {
   const [rodadaSelecionada, setRodadaSelecionada] = useState(
     String(RODADA_INICIAL_BOLAO)
   );
   const [jogos, setJogos] = useState([]);
   const [participantes, setParticipantes] = useState([]);
   const [palpites, setPalpites] = useState({});
-  const [user, setUser] = useState(null);
   const [meuParticipante, setMeuParticipante] = useState(null);
 
   const [loading, setLoading] = useState(true);
@@ -311,18 +310,6 @@ export default function TabelaBolao() {
     return () => {
       ativo = false;
     };
-  }, []);
-
-  useEffect(() => {
-    const carregarSessao = async () => {
-      const {
-        data: { user: usuarioLogado },
-      } = await supabase.auth.getUser();
-
-      setUser(usuarioLogado ?? null);
-    };
-
-    carregarSessao();
   }, []);
 
   useEffect(() => {

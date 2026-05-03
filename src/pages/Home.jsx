@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogIn, LogOut, Moon, Sun } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -15,10 +15,13 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
   const [loginAberto, setLoginAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const [nomeUsuario, setNomeUsuario] = useState("");
+  const logoutEmAndamento = useRef(false);
 
   const IconeTema = modoNoturno ? Sun : Moon;
 
   useEffect(() => {
+    let ativo = true;
+
     async function buscarNomeUsuario() {
       if (!user?.id) {
         setNomeUsuario("");
@@ -29,7 +32,11 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
         .from("participants")
         .select("name")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (!ativo) {
+        return;
+      }
 
       if (error) {
         console.error(error);
@@ -41,18 +48,27 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
     }
 
     buscarNomeUsuario();
-  }, [user]);
+
+    return () => {
+      ativo = false;
+    };
+  }, [user?.email, user?.id]);
 
   const handleSair = async () => {
+    if (logoutEmAndamento.current) {
+      return;
+    }
+
+    logoutEmAndamento.current = true;
     setSaindo(true);
 
     try {
       await onLogout?.();
       navigate("/login", { replace: true });
     } catch (error) {
-      toast.error(error.message || "Não foi possível sair.");
-    } finally {
+      logoutEmAndamento.current = false;
       setSaindo(false);
+      toast.error(error.message || "Não foi possível sair.");
     }
   };
 
@@ -119,7 +135,7 @@ export default function Home({ user, modoNoturno, onLogout, onToggleTema }) {
 </div>
       </div>
 
-      <TabelaBolao key={user?.id || "guest"} />
+      <TabelaBolao key={user?.id || "guest"} user={user} />
 
       {loginAberto && <LoginModal onClose={() => setLoginAberto(false)} />}
     </div>

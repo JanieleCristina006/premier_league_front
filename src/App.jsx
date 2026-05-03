@@ -97,6 +97,10 @@ async function garantirParticipante(user) {
 export default function App() {
   const [user, setUser] = useState(undefined);
   const [modoNoturno, setModoNoturno] = useState(obterTemaInicial);
+  const userId = user?.id;
+  const userEmail = user?.email;
+  const userMetadataName = user?.user_metadata?.name;
+  const userMetadataFullName = user?.user_metadata?.full_name;
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -109,34 +113,53 @@ export default function App() {
   };
 
   useEffect(() => {
-    async function carregarUsuario() {
-      const { data } = await supabase.auth.getUser();
+    let ativo = true;
+    let eventosAuth = 0;
 
-      const currentUser = data.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        await garantirParticipante(currentUser);
+    const aplicarUsuario = (currentUser) => {
+      if (ativo) {
+        setUser(currentUser);
       }
-    }
-
-    carregarUsuario();
+    };
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      eventosAuth += 1;
+      aplicarUsuario(session?.user ?? null);
+    });
 
-      if (currentUser) {
-        await garantirParticipante(currentUser);
+    supabase.auth.getSession().then(({ data }) => {
+      if (eventosAuth === 0) {
+        aplicarUsuario(data.session?.user ?? null);
       }
     });
 
     return () => {
+      ativo = false;
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    garantirParticipante({
+      id: userId,
+      email: userEmail,
+      user_metadata: {
+        full_name: userMetadataFullName,
+        name: userMetadataName,
+      },
+    });
+  }, [
+    userEmail,
+    userId,
+    userMetadataFullName,
+    userMetadataName,
+  ]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", modoNoturno);

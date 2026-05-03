@@ -11,57 +11,7 @@ const TODAS_RODADAS = "todas";
 const RODADAS_FALLBACK = Array.from({ length: 38 }, (_, i) => i + 1);
 const JOGOS_VAZIOS = [];
 const JOGOS_POR_PAGINA = 10;
-const STATUS_ENCERRADOS = new Set([
-  "FINISHED",
-  "AWARDED",
-  "CANCELED",
-  "CANCELLED",
-]);
 const nomeTime = (time) => time?.shortName || time?.name || time?.tla || "Time";
-
-const extrairRodadaAtual = (data) => {
-  const candidatos = [
-    data?.currentMatchday,
-    data?.currentRound,
-    data?.round,
-    data?.season?.currentMatchday,
-    data?.resultSet?.currentMatchday,
-  ];
-
-  return candidatos.map(Number).find((valor) => Number.isInteger(valor)) || null;
-};
-
-const calcularRodadaAtual = (matches = []) => {
-  const jogosPorRodada = new Map();
-
-  matches.forEach((jogo) => {
-    const rodada = Number(jogo.matchday || jogo.rodada);
-
-    if (!Number.isInteger(rodada)) return;
-
-    if (!jogosPorRodada.has(rodada)) {
-      jogosPorRodada.set(rodada, []);
-    }
-
-    jogosPorRodada.get(rodada).push(jogo);
-  });
-
-  const rodadasOrdenadas = Array.from(jogosPorRodada.keys()).sort(
-    (rodadaA, rodadaB) => rodadaA - rodadaB
-  );
-
-  const agora = Date.now();
-  const rodadaAberta = rodadasOrdenadas.find((rodada) =>
-    jogosPorRodada.get(rodada).some((jogo) => {
-      const dataJogo = jogo.utcDate ? new Date(jogo.utcDate).getTime() : null;
-      const jogoFuturo = Number.isFinite(dataJogo) && dataJogo >= agora;
-
-      return jogoFuturo || !STATUS_ENCERRADOS.has(jogo.status);
-    })
-  );
-
-  return rodadaAberta || rodadasOrdenadas.at(-1) || 1;
-};
 
 const buscarJogosDaRodada = async (rodada) => {
   const data = await getFixturesByRound(rodada);
@@ -102,7 +52,7 @@ export const TabelaRodada = () => {
   });
   const [times, setTimes] = useState([]);
   const [rodadas, setRodadas] = useState(RODADAS_FALLBACK);
-  const [rodadaSelecionada, setRodadaSelecionada] = useState("");
+  const [rodadaSelecionada, setRodadaSelecionada] = useState(TODAS_RODADAS);
   const [timeSelecionado, setTimeSelecionado] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
@@ -120,12 +70,6 @@ export const TabelaRodada = () => {
 
         const matchdays = data.matchdays?.length ? data.matchdays : RODADAS_FALLBACK;
         setRodadas(matchdays);
-
-        const rodadaAtualDaApi = extrairRodadaAtual(data);
-
-        if (rodadaAtualDaApi) {
-          setRodadaSelecionada(String(rodadaAtualDaApi));
-        }
       } catch (err) {
         if (!ativo) return;
 
@@ -135,37 +79,6 @@ export const TabelaRodada = () => {
     };
 
     carregarRodadas();
-
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let ativo = true;
-
-    const carregarRodadaAtual = async () => {
-      try {
-        const data = await getSeasonFixtures();
-        if (!ativo) return;
-
-        const rodadaCalculada =
-          extrairRodadaAtual(data) || calcularRodadaAtual(data.matches || []);
-
-        setRodadaSelecionada((rodadaSelecionadaAtual) =>
-          rodadaSelecionadaAtual || String(rodadaCalculada)
-        );
-      } catch (err) {
-        if (!ativo) return;
-
-        console.error(err);
-        setRodadaSelecionada((rodadaSelecionadaAtual) =>
-          rodadaSelecionadaAtual || "1"
-        );
-      }
-    };
-
-    carregarRodadaAtual();
 
     return () => {
       ativo = false;
@@ -345,6 +258,7 @@ export const TabelaRodada = () => {
                 value={rodadaSelecionada}
                 onChange={(e) => {
                   setRodadaSelecionada(e.target.value);
+                  setTimeSelecionado("");
                   setPaginaAtual(1);
                 }}
                 className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500"

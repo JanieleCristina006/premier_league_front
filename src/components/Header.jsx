@@ -3,7 +3,7 @@ import Banner from "../assets/banner.jpg";
 
 export default function HeroBannerCanal() {
   return (
-    <section className="w-full bg-black">
+    <section className="sticky top-0 z-50 w-full bg-black">
       <img
         src={Banner}
         alt="Banner do canal"

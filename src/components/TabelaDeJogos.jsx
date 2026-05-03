@@ -20,8 +20,8 @@ export default function Classificacao() {
 
   return (
     <section className="h-full w-full">
-      <div className="h-full overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-        <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
+      <div className="flex h-full min-h-[640px] flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+        <div className="shrink-0 border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">
             Premier League
           </p>
@@ -51,9 +51,9 @@ export default function Classificacao() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[640px]">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                   Pos
